@@ -1,5 +1,5 @@
-C:\Users\NATHAN.BRANDAO\Documents\dev\compilador\src\main\java\com\compiladores\compilador\LexicalAnalyzer.java
-C:\Users\NATHAN.BRANDAO\Documents\dev\compilador\src\main\java\com\compiladores\compilador\Main.java
-C:\Users\NATHAN.BRANDAO\Documents\dev\compilador\src\main\java\com\compiladores\compilador\ReadLCCode.java
-C:\Users\NATHAN.BRANDAO\Documents\dev\compilador\src\main\java\com\compiladores\compilador\Table\Symbol.java
-C:\Users\NATHAN.BRANDAO\Documents\dev\compilador\src\main\java\com\compiladores\compilador\Table\SymbolsTable.java
+/home/nathanzin/Documentos/dev/compilador/src/main/java/com/compiladores/compilador/Main.java
+/home/nathanzin/Documentos/dev/compilador/src/main/java/com/compiladores/compilador/LexicalAnalyzer.java
+/home/nathanzin/Documentos/dev/compilador/src/main/java/com/compiladores/compilador/Table/Symbol.java
+/home/nathanzin/Documentos/dev/compilador/src/main/java/com/compiladores/compilador/ReadLCCode.java
+/home/nathanzin/Documentos/dev/compilador/src/main/java/com/compiladores/compilador/Table/SymbolsTable.java

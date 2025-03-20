@@ -9,9 +9,10 @@ public class LexicalAnalyzer {
 
     private final SymbolsTable symbolsTable;
 
-    // Regex para cada tipo de token
     private final Pattern numbers = Pattern.compile("\\d+");
+    private final Pattern hexadecimals = Pattern.compile("0h[a-f|0-9]{4}");
     private final Pattern identifiers = Pattern.compile("[a-zA-Z_]\\w*");
+    private final Pattern bool = Pattern.compile("true|false");
     private final Pattern operators = Pattern.compile("==|!=|<=|>=|<|>|[+\\-*/=]");
     private final Pattern delimiters = Pattern.compile("[,;()]");
     private final Pattern comments = Pattern.compile("/\\*(.|\\R)*?\\*/|\\{[^\\}]*\\}");
@@ -32,11 +33,17 @@ public class LexicalAnalyzer {
             matcher = ignoreLexeme(code);
             if (matcher != null) {
                 matched = true;
+            } else if ((matcher = bool.matcher(code)).lookingAt()) {
+                symbolsTable.addSymbol(new Symbol(matcher.group(), "RESERVED_WORD", "BOOLEAN"));
+                matched = true;
             } else if ((matcher = strings.matcher(code)).lookingAt()) {
                 symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "STRING"));
                 matched = true;
+            } else if ((matcher = hexadecimals.matcher(code)).lookingAt()) {
+                symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "BYTE"));
+                matched = true;
             } else if ((matcher = numbers.matcher(code)).lookingAt()) {
-                symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "NUMBER"));
+                symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "INT"));
                 matched = true;
             } else if ((matcher = isReservedWordsOrID(code)) != null) {
                 String lexeme = matcher.group();
@@ -45,7 +52,7 @@ public class LexicalAnalyzer {
                 if (symbolsTable.isReservedWord(lexeme)) {
                     type = "RESERVED_WORD";
                 } else if (delimiters.matcher(lexeme).matches()) {
-                    type = "DELIMITER";  // Agora identificando delimitadores corretamente
+                    type = "DELIMITER";
                 } else {
                     type = "ID";
                 }
@@ -98,17 +105,5 @@ public class LexicalAnalyzer {
             return matcher;
         }
         return null;
-    }
-
-    public static void main(String[] args) {
-        ReadLCCode lcReader = new ReadLCCode();
-        String code = lcReader.readFile("C:\\Users\\NATHAN.BRANDAO\\Documents\\NetBeansProjects\\compilador\\src\\main\\java\\com\\compiladores\\main.lc");
-
-        SymbolsTable table = new SymbolsTable();
-        LexicalAnalyzer lexer = new LexicalAnalyzer(table);
-
-        lexer.analyze(code);
-
-        table.printSymbols();
     }
 }
