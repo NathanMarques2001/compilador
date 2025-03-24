@@ -4,10 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-/**
- *
- * @author nathan.brandao
- */
 public class ReadLCCode {
 
     public String readFile(String filePath) {

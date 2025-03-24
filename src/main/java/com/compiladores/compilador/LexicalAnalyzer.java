@@ -51,8 +51,6 @@ public class LexicalAnalyzer {
 
                 if (symbolsTable.isReservedWord(lexeme)) {
                     type = "RESERVED_WORD";
-                } else if (delimiters.matcher(lexeme).matches()) {
-                    type = "DELIMITER";
                 } else {
                     type = "ID";
                 }

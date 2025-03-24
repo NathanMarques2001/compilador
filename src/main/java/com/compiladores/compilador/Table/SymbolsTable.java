@@ -1,8 +1,7 @@
 package com.compiladores.compilador.Table;
 
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 
 public class SymbolsTable {
 
@@ -13,15 +12,18 @@ public class SymbolsTable {
             "-", "*", "/", ";", "begin", "end", "readln",
             "write", "writeln", "true", "false", "boolean");
 
-    private int nextId = 1;
-    private final Map<Integer, Symbol> table;
+    private final ArrayList<Symbol> table;
 
     public SymbolsTable() {
-        this.table = new ConcurrentHashMap<>();
+        this.table = new ArrayList<Symbol>();
+    }
+
+    public Symbol currentToken(int index) {
+        return this.table.get(index);
     }
 
     public void addSymbol(Symbol symbol) {
-        table.put(nextId++, symbol);
+        table.add(symbol);
     }
 
     public boolean isReservedWord(String word) {
@@ -30,8 +32,9 @@ public class SymbolsTable {
 
     public void printSymbols() {
         System.out.println("Tabela de Simbolos:\n===================\n");
-        for (var entry : table.entrySet()) {
-            System.out.printf("[Token: %s, %s\n", entry.getKey(), entry.getValue());
+        int indexSymbol = 0;
+        for (var element : table) {
+            System.out.printf("[Token: %s, %s\n", indexSymbol++, element);
         }
     }
 }
