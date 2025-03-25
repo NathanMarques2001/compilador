@@ -7,10 +7,10 @@ public class ErrorHandler {
     throw new CompilerException("Erro Léxico: Token inválido encontrado -> " + found);
   }
 
-  public static void syntaxError(String expected, Symbol found) throws CompilerException {
+  public static void syntaxError(String expected, String found) throws CompilerException {
     throw new CompilerException(
         "Erro Sintático: esperado '" + expected + "', mas encontrado '"
-            + found.getName() + "' (" + found.getClassification() + ")");
+            + found + "'");
   }
 
   public static void semanticError(String message) throws CompilerException {

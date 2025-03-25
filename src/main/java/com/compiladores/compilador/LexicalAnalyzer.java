@@ -1,5 +1,7 @@
 package com.compiladores.compilador;
 
+import com.compiladores.compilador.Exceptions.ErrorHandler;
+import com.compiladores.compilador.Exceptions.CompilerException;
 import com.compiladores.compilador.Table.Symbol;
 import com.compiladores.compilador.Table.SymbolsTable;
 import java.util.regex.Matcher;
@@ -23,7 +25,7 @@ public class LexicalAnalyzer {
         this.symbolsTable = symbolsTable;
     }
 
-    public void analyze(String code) {
+    public void analyze(String code) throws CompilerException {
         code = code.stripLeading();
 
         while (!code.isEmpty()) {
@@ -58,9 +60,7 @@ public class LexicalAnalyzer {
                 symbolsTable.addSymbol(new Symbol(lexeme, type, "NULL"));
                 matched = true;
             } else {
-                System.err.println("Invalid token found: " + code.charAt(0));
-                code = code.substring(1).stripLeading();
-                continue;
+                ErrorHandler.lexicalError(String.valueOf(code.charAt(0)));
             }
 
             // Avançar no código se um token foi reconhecido
@@ -86,8 +86,7 @@ public class LexicalAnalyzer {
     }
 
     /**
-     * Identifica palavras reservadas, identificadores, operadores e
-     * delimitadores.
+     * Identifica palavras reservadas, identificadores, operadores e delimitadores.
      */
     private Matcher isReservedWordsOrID(String code) {
         Matcher matcher = identifiers.matcher(code);
