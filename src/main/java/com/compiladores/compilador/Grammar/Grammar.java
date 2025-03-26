@@ -32,7 +32,6 @@ public class Grammar {
     }
 
     private void previousToken() {
-        System.out.println(this.currentToken.getName());
         this.currentToken = this.symbolsTable.currentToken(--this.currentTokenIndex);
     }
 
@@ -87,11 +86,13 @@ public class Grammar {
     void ifGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("if")) {
             this.nextToken();
-            if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID() || this.identifyBooleanValue()) {
+            if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID()
+                    || this.identifyBooleanValue()) {
                 this.nextToken();
                 if (this.identifyLogicalOperator()) {
                     this.nextToken();
-                    if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID() || this.identifyBooleanValue()) {
+                    if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID()
+                            || this.identifyBooleanValue()) {
                         this.nextToken();
                         while (!currentToken.getName().equals("end") && !currentToken.getName().equals("else")) {
                             this.nextToken();
@@ -153,7 +154,8 @@ public class Grammar {
             this.nextToken();
             this.expectName("=");
             this.nextToken();
-            if (!this.identifyMathematicalOperationGeneration() && !this.identifyBooleanValue() && !this.identifyCONSTorID()) {
+            if (!this.identifyMathematicalOperationGeneration() && !this.identifyBooleanValue()
+                    && !this.identifyCONSTorID()) {
                 ErrorHandler.syntaxErrorAssignment(currentToken.getName());
             }
             this.nextToken();
@@ -181,6 +183,7 @@ public class Grammar {
                 this.nextToken();
                 this.beginGeneration();
             }
+            this.nextToken();
         }
     }
 
@@ -190,7 +193,8 @@ public class Grammar {
     }
 
     boolean identifyCONSTorID() {
-        return (this.currentToken.getClassification().equals("CONST") || this.currentToken.getClassification().equals("ID"));
+        return (this.currentToken.getClassification().equals("CONST")
+                || this.currentToken.getClassification().equals("ID"));
     }
 
     boolean identifyLogicalOperator() {
@@ -210,15 +214,31 @@ public class Grammar {
         return (this.currentToken.getName().equals("true") || this.currentToken.getName().equals("false"));
     }
 
-    boolean identifyMathematicalOperationGeneration() {
-        if (this.identifyCONSTorID()) {
-            this.nextToken();
+    boolean identifyMathematicalOperationGeneration() throws CompilerException {
+        if (this.identifyCONSTorID() || this.identifyParentheses()) {
+            if (this.identifyParentheses() && this.currentToken.getName().equals("(")) {
+                this.nextToken(); // Avança para o conteúdo dentro dos parênteses
+                if (!this.identifyMathematicalOperationGeneration()) {
+                    ErrorHandler.syntaxError("Expressão matemática inválida dentro dos parênteses.","");
+                }
+                this.expectName(")");
+                this.nextToken();
+            } else {
+                this.nextToken();
+            }
+
             if (this.identifyMathematicalOperator()) {
                 this.nextToken();
-                return this.identifyCONSTorID();
+                return this.identifyMathematicalOperationGeneration();
             }
-            this.previousToken(); // Volta se nao tiver operador
+
+            this.previousToken();
         }
         return false;
     }
+
+    boolean identifyParentheses() {
+        return this.currentToken.getName().equals("(") || this.currentToken.getName().equals(")");
+    }
+
 }

@@ -1,0 +1,26 @@
+/* Teste cobrindo todas as especificacoes da linguagem LC */
+int n;
+string nome;
+boolean naoTerminou;
+final MAXITER=10;
+{ Bloco Principal }
+begin
+  write,"Digite seu nome: ";
+  readln,nome;
+  naoTerminou=true;
+  n=0;
+  while naoTerminou begin
+    writeln,"Ola' ",nome;
+    n=n+1;
+    naoTerminou=n<MAXITER;
+  end
+  if n==10 begin
+    naoTerminou=(1+3+5+7+9)<(2+4+6+8+10);
+  end
+  if naoTerminou==false
+    nome="Natan";
+  else
+    nome="Nathan";
+  end
+  n=1+2*3/2+(10-2);
+end
