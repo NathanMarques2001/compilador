@@ -16,9 +16,24 @@ public class Grammar {
         this.currentToken = symbolsTable.currentToken(this.currentTokenIndex);
     }
 
+    public void analyze() {
+        try {
+            this.typeGeneration();
+            this.beginGeneration();
+            System.out.println("Analise sintatica concluida com sucesso!");
+        } catch (Exception e) {
+            System.err.println("Erro de analise sintatica: " + e.getMessage());
+        }
+    }
+
     private void nextToken() {
         System.out.println(this.currentToken.getName());
         this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
+    }
+
+    private void previousToken() {
+        System.out.println(this.currentToken.getName());
+        this.currentToken = this.symbolsTable.currentToken(--this.currentTokenIndex);
     }
 
     private void expectClassification(String expected) throws CompilerException {
@@ -34,20 +49,26 @@ public class Grammar {
     }
 
     void typeGeneration() throws CompilerException {
-        if (this.identifyType()) {
+        while (this.identifyType()) {
+            this.nextToken();
             this.expectClassification("ID");
 
+            this.nextToken();
             if (this.currentToken.getName().equals("=")) {
+                this.nextToken();
                 if (!this.identifyCONSTorID()) {
                     ErrorHandler.syntaxErrorAssignment(currentToken.getName());
                 }
+                this.nextToken();
             }
             expectName(";");
+            this.nextToken();
         }
     }
 
     void beginGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("begin")) {
+            this.nextToken();
             while (!this.currentToken.getName().equals("end")) {
                 this.statements();
             }
@@ -65,18 +86,28 @@ public class Grammar {
 
     void ifGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("if")) {
-            if ((this.identifyMathematicalOperation() || this.identifyCONSTorID()) &&
-                    this.identifyLogicalOperator() &&
-                    (this.identifyMathematicalOperation() || this.identifyCONSTorID()))
-                while (!currentToken.getName().equals("end") && !currentToken.getName().equals("else")) {
-                    this.statements();
+            this.nextToken();
+            if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID() || this.identifyBooleanValue()) {
+                this.nextToken();
+                if (this.identifyLogicalOperator()) {
+                    this.nextToken();
+                    if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID() || this.identifyBooleanValue()) {
+                        this.nextToken();
+                        while (!currentToken.getName().equals("end") && !currentToken.getName().equals("else")) {
+                            this.nextToken();
+                            this.statements();
+                        }
+                    }
                 }
+            }
         }
     }
 
     void elseGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("else")) {
+            this.nextToken();
             while (!this.currentToken.getName().equals("end")) {
+                this.nextToken();
                 this.statements();
             }
         }
@@ -84,36 +115,71 @@ public class Grammar {
 
     void readlnGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("readln")) {
+            this.nextToken();
             this.expectName(",");
+            this.nextToken();
             this.expectClassification("ID");
+            this.nextToken();
             this.expectName(";");
+            this.nextToken();
         }
     }
 
     void writeGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
+            this.nextToken();
+            this.expectName(",");
+            this.nextToken();
+            if (!this.identifyCONSTorID()) {
+                ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+            }
+            this.nextToken();
             while (!this.currentToken.getName().equals(";")) {
-                this.expectName(",");
+                if (this.currentToken.getName().equals(",")) {
+                    this.nextToken();
+                }
                 if (!this.identifyCONSTorID()) {
                     ErrorHandler.syntaxErrorAssignment(currentToken.getName());
                 }
+                this.nextToken();
             }
             this.expectName(";");
+            this.nextToken();
         }
     }
 
     void assignmentGeneration() throws CompilerException {
-        this.expectName("=");
-        if (!this.identifyMathematicalOperation() || !this.identifyBooleanValue()) {
-            ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+        if (this.currentToken.getClassification().equals("ID")) {
+            this.nextToken();
+            this.expectName("=");
+            this.nextToken();
+            if (!this.identifyMathematicalOperationGeneration() && !this.identifyBooleanValue() && !this.identifyCONSTorID()) {
+                ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+            }
+            this.nextToken();
+
+            if (!this.currentToken.equals("=")) {
+                if (this.identifyLogicalOperator() || this.identifyMathematicalOperator()) {
+                    this.nextToken();
+                    if (!this.identifyCONSTorID() && !this.identifyBooleanValue()) {
+                        ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+                    }
+                    this.nextToken();
+                }
+            }
+
+            this.expectName(";");
+            this.nextToken();
         }
-        this.expectName(";");
     }
 
     void whileGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("while")) {
+            this.nextToken();
+            this.expectClassification("ID");
             while (!this.currentToken.getName().equals("end")) {
-                statements();
+                this.nextToken();
+                this.beginGeneration();
             }
         }
     }
@@ -128,27 +194,30 @@ public class Grammar {
     }
 
     boolean identifyLogicalOperator() {
-        return (this.currentToken.getName().equals("==") || this.currentToken.getName().equals("<") ||
-                this.currentToken.getName().equals("<=") || this.currentToken.getName().equals(">") ||
-                this.currentToken.getName().equals(">=") || this.currentToken.getName().equals("<>") ||
-                this.currentToken.getName().equals("and") || this.currentToken.getName().equals("or") ||
-                this.currentToken.getName().equals("not"));
+        return (this.currentToken.getName().equals("==") || this.currentToken.getName().equals("<")
+                || this.currentToken.getName().equals("<=") || this.currentToken.getName().equals(">")
+                || this.currentToken.getName().equals(">=") || this.currentToken.getName().equals("<>")
+                || this.currentToken.getName().equals("and") || this.currentToken.getName().equals("or")
+                || this.currentToken.getName().equals("not"));
     }
 
     boolean identifyMathematicalOperator() {
-        return (this.currentToken.getName().equals("+") || this.currentToken.getName().equals("-") ||
-                this.currentToken.getName().equals("*") || this.currentToken.getName().equals("/"));
+        return (this.currentToken.getName().equals("+") || this.currentToken.getName().equals("-")
+                || this.currentToken.getName().equals("*") || this.currentToken.getName().equals("/"));
     }
 
     boolean identifyBooleanValue() {
         return (this.currentToken.getName().equals("true") || this.currentToken.getName().equals("false"));
     }
 
-    boolean identifyMathematicalOperation() {
+    boolean identifyMathematicalOperationGeneration() {
         if (this.identifyCONSTorID()) {
+            this.nextToken();
             if (this.identifyMathematicalOperator()) {
+                this.nextToken();
                 return this.identifyCONSTorID();
             }
+            this.previousToken(); // Volta se nao tiver operador
         }
         return false;
     }

@@ -30,6 +30,10 @@ public class SymbolsTable {
         return reservedWords.contains(word);
     }
 
+    public int getSize() {
+        return this.table.size();
+    }
+
     public void printSymbols() {
         System.out.println("Tabela de Simbolos:\n===================\n");
         int indexSymbol = 0;
