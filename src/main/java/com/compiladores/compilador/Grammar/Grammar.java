@@ -16,17 +16,6 @@ public class Grammar {
         this.currentToken = symbolsTable.currentToken(this.currentTokenIndex);
     }
 
-    public void analyze() {
-        try {
-            this.declarationGeneration();
-            this.beginGeneration();
-            // this.expectName("end");
-            System.out.println("Analise sintatica concluida com sucesso!");
-        } catch (Exception e) {
-            System.err.println("Erro de analise sintatica: " + e.getMessage());
-        }
-    }
-
     private void nextToken() {
         System.out.println(this.currentToken.getName());
         this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
@@ -44,132 +33,123 @@ public class Grammar {
         }
     }
 
-    private void declarationGeneration() throws CompilerException {
-        while (this.identifyIDType()) {
-            this.nextToken();
-
-            // TYPE -> ID
+    void typeGeneration() throws CompilerException {
+        if (this.identifyType()) {
             this.expectClassification("ID");
-            this.nextToken();
 
-            // ID -> =
-            if (currentToken.getName().equals("=")) {
-                this.nextToken();
-                // = -> CONST
-                this.expectClassification("CONST");
-                this.nextToken();
+            if (this.currentToken.getName().equals("=")) {
+                if (!this.identifyCONSTorID()) {
+                    ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+                }
             }
-            // ID | CONST -> ;
-            this.expectName(";");
-            this.nextToken();
+            expectName(";");
         }
     }
 
-    // begin -> bloco de codigo
-    private void beginGeneration() throws CompilerException {
-        this.expectName("begin");
-        this.nextToken();
-        this.statements();
-    }
-
-    private void statements() throws CompilerException {
-        while (!currentToken.getName().equals("end")) {
-            if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
-                this.writeGeneration();
-            }
-            if (this.currentToken.getName().equals("readln")) {
-                this.readGeneration();
-            }
-            if (this.currentToken.getClassification().equals("ID")) {
-                this.assignmentGeneration();
-            }
-            if (this.currentToken.getName().equals("while")) {
-                this.whileGeneration();
+    void beginGeneration() throws CompilerException {
+        if (this.currentToken.getName().equals("begin")) {
+            while (!this.currentToken.getName().equals("end")) {
+                this.statements();
             }
         }
-        System.out.println(this.currentToken.getName());
     }
 
-    private void writeGeneration() throws CompilerException {
-        this.nextToken();
-        while (!this.currentToken.getName().equals(";")) {
-            // write | writeln -> ,
+    void statements() throws CompilerException {
+        this.ifGeneration();
+        this.elseGeneration();
+        this.readlnGeneration();
+        this.writeGeneration();
+        this.assignmentGeneration();
+        this.whileGeneration();
+    }
+
+    void ifGeneration() throws CompilerException {
+        if (this.currentToken.getName().equals("if")) {
+            if ((this.identifyMathematicalOperation() || this.identifyCONSTorID()) &&
+                    this.identifyLogicalOperator() &&
+                    (this.identifyMathematicalOperation() || this.identifyCONSTorID()))
+                while (!currentToken.getName().equals("end") && !currentToken.getName().equals("else")) {
+                    this.statements();
+                }
+        }
+    }
+
+    void elseGeneration() throws CompilerException {
+        if (this.currentToken.getName().equals("else")) {
+            while (!this.currentToken.getName().equals("end")) {
+                this.statements();
+            }
+        }
+    }
+
+    void readlnGeneration() throws CompilerException {
+        if (this.currentToken.getName().equals("readln")) {
             this.expectName(",");
-            this.nextToken();
-            // , -> ID | CONST
-            if (!this.identifyCONSTorID()) {
-                ErrorHandler.syntaxError("STRING", currentToken.getName());
-            }
-            // ID | CONST -> , | ;
-            this.nextToken();
+            this.expectClassification("ID");
+            this.expectName(";");
         }
-        // ;
-        this.expectName(";");
-        this.nextToken();
     }
 
-    private void readGeneration() throws CompilerException {
-        this.nextToken();
-        // read -> ,
-        this.expectName(",");
-        this.nextToken();
-        // , -> ID
-        this.expectClassification("ID");
-        this.nextToken();
-        // ID -> ;
-        this.expectName(";");
-        this.nextToken();
+    void writeGeneration() throws CompilerException {
+        if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
+            while (!this.currentToken.getName().equals(";")) {
+                this.expectName(",");
+                if (!this.identifyCONSTorID()) {
+                    ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+                }
+            }
+            this.expectName(";");
+        }
     }
 
-    private void assignmentGeneration() throws CompilerException {
-        this.nextToken();
-        // ID -> =
+    void assignmentGeneration() throws CompilerException {
         this.expectName("=");
-        this.nextToken();
-        // = -> CONST | ID | true | false
-        if (!this.identifyCONSTorID() && !this.identifyBooleanValue()) {
-            ErrorHandler.syntaxError("Valor", currentToken.getName());
+        if (!this.identifyMathematicalOperation() || !this.identifyBooleanValue()) {
+            ErrorHandler.syntaxErrorAssignment(currentToken.getName());
         }
-        this.nextToken();
-        // CONST -> + | < | <= | > | >= | -
-        if (this.identifyOperator()) {
-            this.nextToken();
-            // + | < | <= | > | >= | - -> CONST | ID
-            if (!this.identifyCONSTorID()) {
-                ErrorHandler.syntaxError("Valor", currentToken.getClassification());
-            }
-            this.nextToken();
-        }
-        // CONST -> ;
         this.expectName(";");
-        this.nextToken();
     }
 
-    private void whileGeneration() throws CompilerException {
-        this.nextToken();
-        // while -> ID
-        this.expectClassification("ID");
-        this.nextToken();
-        // ID -> begin
-        this.beginGeneration();
+    void whileGeneration() throws CompilerException {
+        if (this.currentToken.getName().equals("while")) {
+            while (!this.currentToken.getName().equals("end")) {
+                statements();
+            }
+        }
     }
 
-    private boolean identifyIDType() {
+    boolean identifyType() {
         return (currentToken.getName().equals("int") || currentToken.getName().equals("string")
                 || currentToken.getName().equals("boolean") || currentToken.getName().equals("final"));
     }
 
-    private boolean identifyOperator() {
-        return (this.currentToken.getName().equals("+") || this.currentToken.getName().equals("<")
-                || this.currentToken.getName().equals("<=") || this.currentToken.getName().equals(">")
-                || this.currentToken.getName().equals(">=") || this.currentToken.getName().equals("-"));
-    }
-
-    private boolean identifyCONSTorID() {
+    boolean identifyCONSTorID() {
         return (this.currentToken.getClassification().equals("CONST") || this.currentToken.getClassification().equals("ID"));
     }
 
-    private boolean identifyBooleanValue() {
+    boolean identifyLogicalOperator() {
+        return (this.currentToken.getName().equals("==") || this.currentToken.getName().equals("<") ||
+                this.currentToken.getName().equals("<=") || this.currentToken.getName().equals(">") ||
+                this.currentToken.getName().equals(">=") || this.currentToken.getName().equals("<>") ||
+                this.currentToken.getName().equals("and") || this.currentToken.getName().equals("or") ||
+                this.currentToken.getName().equals("not"));
+    }
+
+    boolean identifyMathematicalOperator() {
+        return (this.currentToken.getName().equals("+") || this.currentToken.getName().equals("-") ||
+                this.currentToken.getName().equals("*") || this.currentToken.getName().equals("/"));
+    }
+
+    boolean identifyBooleanValue() {
         return (this.currentToken.getName().equals("true") || this.currentToken.getName().equals("false"));
+    }
+
+    boolean identifyMathematicalOperation() {
+        if (this.identifyCONSTorID()) {
+            if (this.identifyMathematicalOperator()) {
+                return this.identifyCONSTorID();
+            }
+        }
+        return false;
     }
 }
