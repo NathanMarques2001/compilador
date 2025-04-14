@@ -1,5 +1,7 @@
 package com.compiladores.compilador.Table;
 
+import com.compiladores.compilador.Lexical.Token;
+
 import java.util.Set;
 import java.util.ArrayList;
 
@@ -12,18 +14,18 @@ public class SymbolsTable {
             "-", "*", "/", ";", "begin", "end", "readln",
             "write", "writeln", "true", "false", "boolean");
 
-    private final ArrayList<Symbol> table;
+    private final ArrayList<Token> table;
 
     public SymbolsTable() {
-        this.table = new ArrayList<Symbol>();
+        this.table = new ArrayList<Token>();
     }
 
-    public Symbol currentToken(int index) {
+    public Token currentToken(int index) {
         return this.table.get(index);
     }
 
-    public void addSymbol(Symbol symbol) {
-        table.add(symbol);
+    public void addToken(Token token) {
+        table.add(token);
     }
 
     public boolean isReservedWord(String word) {
@@ -35,10 +37,11 @@ public class SymbolsTable {
     }
 
     public void printSymbols() {
-        System.out.println("Tabela de Simbolos:\n===================\n");
+        System.out.println("Tabela de Simbolos:\n============================================================================");
         int indexSymbol = 0;
-        for (var element : table) {
-            System.out.printf("[Token: %s, %s\n", indexSymbol++, element);
+        for (var token : table) {
+            System.out.printf("[Token: %s, %s\n", indexSymbol++, token);
         }
+        System.out.println("============================================================================");
     }
 }

@@ -1,17 +1,17 @@
 package com.compiladores.compilador.Grammar;
 
 import com.compiladores.compilador.Exceptions.CompilerException;
-import com.compiladores.compilador.Table.SymbolsTable;
-import com.compiladores.compilador.Table.Symbol;
 import com.compiladores.compilador.Exceptions.ErrorHandler;
+import com.compiladores.compilador.Lexical.Token;
+import com.compiladores.compilador.Table.SymbolsTable;
 
-public class Grammar {
+public class SyntaticAnalyzer {
 
     private SymbolsTable symbolsTable;
-    private Symbol currentToken;
+    private Token currentToken;
     private int currentTokenIndex = 0;
 
-    public Grammar(SymbolsTable symbolsTable) {
+    public SyntaticAnalyzer(SymbolsTable symbolsTable) {
         this.symbolsTable = symbolsTable;
         this.currentToken = symbolsTable.currentToken(this.currentTokenIndex);
     }
@@ -82,6 +82,7 @@ public class Grammar {
         this.assignmentGeneration();
         this.whileGeneration();
     }
+
 
     void ifGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("if")) {
@@ -189,12 +190,14 @@ public class Grammar {
 
     boolean identifyType() {
         return (currentToken.getName().equals("int") || currentToken.getName().equals("string")
-                || currentToken.getName().equals("boolean") || currentToken.getName().equals("final"));
+                || currentToken.getName().equals("boolean") || currentToken.getName().equals("final")
+                || currentToken.getName().equals("byte"));
     }
 
     boolean identifyCONSTorID() {
         return (this.currentToken.getClassification().equals("CONST")
-                || this.currentToken.getClassification().equals("ID"));
+                || this.currentToken.getClassification().equals("ID")
+                || this.identifyBooleanValue());
     }
 
     boolean identifyLogicalOperator() {
@@ -211,12 +214,12 @@ public class Grammar {
     }
 
     boolean identifyBooleanValue() {
-        return (this.currentToken.getName().equals("true") || this.currentToken.getName().equals("false"));
+        return this.currentToken.getType().equals("BOOLEAN");
     }
 
     boolean identifyMathematicalOperationGeneration() throws CompilerException {
         if (this.identifyCONSTorID() || this.identifyParentheses()) {
-            if (this.identifyParentheses() && this.currentToken.getName().equals("(")) {
+            if (this.identifyParentheses()) {
                 this.nextToken(); // Avança para o conteúdo dentro dos parênteses
                 if (!this.identifyMathematicalOperationGeneration()) {
                     ErrorHandler.syntaxError("Expressão matemática inválida dentro dos parênteses.","");

@@ -1,9 +1,9 @@
-package com.compiladores.compilador;
+package com.compiladores.compilador.Lexical;
 
 import com.compiladores.compilador.Exceptions.ErrorHandler;
 import com.compiladores.compilador.Exceptions.CompilerException;
-import com.compiladores.compilador.Table.Symbol;
 import com.compiladores.compilador.Table.SymbolsTable;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,7 +25,9 @@ public class LexicalAnalyzer {
         this.symbolsTable = symbolsTable;
     }
 
-    public void analyze(String code) throws CompilerException {
+    public void analyze(String code, int lineNumber) throws CompilerException {
+        int columnNumber = 1;
+
         code = code.stripLeading();
 
         while (!code.isEmpty()) {
@@ -35,17 +37,22 @@ public class LexicalAnalyzer {
             matcher = ignoreLexeme(code);
             if (matcher != null) {
                 matched = true;
-            } else if ((matcher = bool.matcher(code)).lookingAt()) {
-                symbolsTable.addSymbol(new Symbol(matcher.group(), "RESERVED_WORD", "BOOLEAN"));
+                columnNumber += matcher.end(); // Atualiza a coluna com base no comprimento ignorado
+                code = code.substring(matcher.end()).stripLeading();
+                continue;
+            }
+
+            if ((matcher = bool.matcher(code)).lookingAt()) {
+                symbolsTable.addToken(new Token(this.trueOrFalse(matcher.group()), "RESERVED_WORD", "BOOLEAN", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = strings.matcher(code)).lookingAt()) {
-                symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "STRING"));
+                symbolsTable.addToken(new Token(matcher.group(), "CONST", "STRING", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = hexadecimals.matcher(code)).lookingAt()) {
-                symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "BYTE"));
+                symbolsTable.addToken(new Token(matcher.group(), "CONST", "BYTE", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = numbers.matcher(code)).lookingAt()) {
-                symbolsTable.addSymbol(new Symbol(matcher.group(), "CONST", "INT"));
+                symbolsTable.addToken(new Token(matcher.group(), "CONST", "INT", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = isReservedWordsOrID(code)) != null) {
                 String lexeme = matcher.group();
@@ -57,15 +64,16 @@ public class LexicalAnalyzer {
                     type = "ID";
                 }
 
-                symbolsTable.addSymbol(new Symbol(lexeme, type, "NULL"));
+                symbolsTable.addToken(new Token(lexeme, type, "NULL", lineNumber, columnNumber));
                 matched = true;
             } else {
-                ErrorHandler.lexicalError(String.valueOf(code.charAt(0)));
+                ErrorHandler.lexicalError(String.valueOf(code.charAt(0)), lineNumber, columnNumber);
             }
 
-            // Avançar no código se um token foi reconhecido
             if (matched) {
-                code = code.substring(matcher.end()).stripLeading();
+                int consumedLength = matcher.end();
+                columnNumber += consumedLength; // Atualiza a coluna com base no comprimento do token consumido
+                code = code.substring(consumedLength).stripLeading();
             }
         }
     }
@@ -86,7 +94,8 @@ public class LexicalAnalyzer {
     }
 
     /**
-     * Identifica palavras reservadas, identificadores, operadores e delimitadores.
+     * Identifica palavras reservadas, identificadores, operadores e
+     * delimitadores.
      */
     private Matcher isReservedWordsOrID(String code) {
         Matcher matcher = identifiers.matcher(code);
@@ -102,5 +111,12 @@ public class LexicalAnalyzer {
             return matcher;
         }
         return null;
+    }
+
+    private String trueOrFalse(String code) {
+        if (code.equals("true")) {
+            return "0hFFFF";
+        }
+        return "0h0000";
     }
 }

@@ -1,4 +1,1 @@
-1. existe endif para o if e else? ou tambem é um end?
-2. Os tipos das variáveis já são setados na análise léxica ou sintática? Ou só verificamos isso na semântica?
-----
-Mapear e implementar o restante dos operadores
+1. A Análise Léxica também precisa ser recursiva? Se sim, o ideal é tudo no compilador ser recursivo?
