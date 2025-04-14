@@ -48,21 +48,23 @@ public class SyntaticAnalyzer {
     }
 
     void typeGeneration() throws CompilerException {
-        while (this.identifyType()) {
-            this.nextToken();
-            this.expectClassification("ID");
+        if (!this.identifyType()) {
+            return;
+        }
+        this.nextToken();
+        this.expectClassification("ID");
 
+        this.nextToken();
+        if (this.currentToken.getName().equals("=")) {
             this.nextToken();
-            if (this.currentToken.getName().equals("=")) {
-                this.nextToken();
-                if (!this.identifyCONSTorID()) {
-                    ErrorHandler.syntaxErrorAssignment(currentToken.getName());
-                }
-                this.nextToken();
+            if (!this.identifyCONSTorID()) {
+                ErrorHandler.syntaxErrorAssignment(currentToken.getName());
             }
-            expectName(";");
             this.nextToken();
         }
+        expectName(";");
+        this.nextToken();
+        this.typeGeneration();
     }
 
     void beginGeneration() throws CompilerException {
@@ -222,7 +224,7 @@ public class SyntaticAnalyzer {
             if (this.identifyParentheses()) {
                 this.nextToken(); // Avança para o conteúdo dentro dos parênteses
                 if (!this.identifyMathematicalOperationGeneration()) {
-                    ErrorHandler.syntaxError("Expressão matemática inválida dentro dos parênteses.","");
+                    ErrorHandler.syntaxError("Expressão matemática inválida dentro dos parênteses.", "");
                 }
                 this.expectName(")");
                 this.nextToken();
