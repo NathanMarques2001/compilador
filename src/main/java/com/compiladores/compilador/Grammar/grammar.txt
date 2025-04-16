@@ -1,63 +1,63 @@
-PROGRAMA         -> DECLS BLOCO_COD
+PROGRAMA           -> DECLS BLOCO_COD                    // parseProgram()
 
-DECLS            -> DECLARACAO DECLS | ε
+DECLS              -> DECLARACAO DECLS | ε               // parseDeclarations()
 
-DECLARACAO       -> TP_PRIMITIVO ID SIMB_TERM
-                  | TP_PRIMITIVO ID = CONST SIMB_TERM
-                  | "final" ID = CONST SIMB_TERM
+DECLARACAO         -> TP_PRIMITIVO ID SIMB_TERM          // parseDeclaration()
+                   | TP_PRIMITIVO ID = CONST SIMB_TERM
+                   | "final" ID = CONST SIMB_TERM
 
-TP_PRIMITIVO     -> "int" | "string" | "byte" | "boolean"
+TP_PRIMITIVO       -> "int" | "string" | "byte" | "boolean"  // isPrimitiveType()
 
-CONST            -> NUM_INT
-                  | NUM_HEX
-                  | "true"
-                  | "false"
-                  | STRING
+CONST              -> NUM_INT                            // isConstOrId()
+                   | NUM_HEX
+                   | "true"
+                   | "false"
+                   | STRING
 
-NUM_INT          -> [0-9]+
-NUM_HEX          -> "0h"[0-9A-Fa-f]+
-STRING           -> "\"" .*? "\""
+NUM_INT            -> [0-9]+
+NUM_HEX            -> "0h"[0-9A-Fa-f]+
+STRING             -> "\"" .*? "\""
 
-BLOCO_COD        -> "begin" COMANDOS "end"
+BLOCO_COD          -> "begin" COMANDOS "end"             // parseBlock()
 
-COMANDOS         -> COMANDO COMANDOS | ε
+COMANDOS           -> COMANDO COMANDOS | ε               // parseCommands()
 
-COMANDO          -> ESCREVE
-                  | LER
-                  | ATRIBUICAO
-                  | LOOP
-                  | CONDICIONAL
-                  | COMENTARIO
+COMANDO            -> ESCREVE                            // parseCommand() → parseWrite()
+                   | LER                                 // parseReadln()
+                   | ATRIBUICAO                          // parseAssignment()
+                   | LOOP                                // parseWhile()
+                   | CONDICIONAL                         // parseIf()
+                   | COMENTARIO                          // parseComment() *(opcional)*
 
-ESCREVE          -> ("write" | "writeln") STR_CONCAT SIMB_TERM
-STR_CONCAT       -> "," (ID | CONST | STRING) STR_CONCAT_TAIL
-STR_CONCAT_TAIL  -> STR_CONCAT | ε
+ESCREVE            -> ("write" | "writeln") STR_CONCAT SIMB_TERM   // parseWrite()
+STR_CONCAT         -> "," (ID | CONST | STRING) STR_CONCAT_TAIL
+STR_CONCAT_TAIL    -> STR_CONCAT | ε
 
-LER              -> "readln" "," ID SIMB_TERM
+LER                -> "readln" "," ID SIMB_TERM          // parseReadln()
 
-ATRIBUICAO       -> ID "=" EXPRESSAO SIMB_TERM
+ATRIBUICAO         -> ID "=" EXPRESSAO SIMB_TERM         // parseAssignment()
 
-EXPRESSAO        -> EXPRESSAO_LOGICA
+EXPRESSAO          -> EXPRESSAO_LOGICA                   // parseExpression()
 
-EXPRESSAO_LOGICA -> EXPRESSAO_ARITM COMPARADOR EXPRESSAO_ARITM
-                  | EXPRESSAO_LOGICA LOGICO EXPRESSAO_LOGICA
-                  | "not" EXPRESSAO_LOGICA
-                  | EXPRESSAO_ARITM
+EXPRESSAO_LOGICA   -> EXPRESSAO_ARITM COMPARADOR EXPRESSAO_ARITM  // parseExpression()
+                   | EXPRESSAO_LOGICA LOGICO EXPRESSAO_LOGICA
+                   | "not" EXPRESSAO_LOGICA
+                   | EXPRESSAO_ARITM
 
-COMPARADOR       -> "==" | "<" | "<=" | "<>" | ">" | ">="
+COMPARADOR         -> "==" | "<" | "<=" | "<>" | ">" | ">="       // isLogicalOperator()
 
-LOGICO           -> "and" | "or"
+LOGICO             -> "and" | "or"                                // isLogicalOperator()
 
-EXPRESSAO_ARITM  -> TERMO (( "+" | "-" ) TERMO)*
-TERMO            -> FATOR (( "*" | "/" ) FATOR)*
-FATOR            -> CONST | ID | "(" EXPRESSAO ")"
+EXPRESSAO_ARITM    -> TERMO (( "+" | "-" ) TERMO)*       // parseExpression()
+TERMO              -> FATOR (( "*" | "/" ) FATOR)*       // parseExpression()
+FATOR              -> CONST | ID | "(" EXPRESSAO ")"     // isConstOrId() + parseExpression()
 
-LOOP             -> "while" EXPRESSAO_LOGICA BLOCO_COD
+LOOP               -> "while" EXPRESSAO_LOGICA BLOCO_COD // parseWhile()
 
-CONDICIONAL      -> "if" EXPRESSAO_LOGICA BLOCO_COD CONDICIONAL_TAIL
-CONDICIONAL_TAIL -> "else" BLOCO_COD | ε
+CONDICIONAL        -> "if" EXPRESSAO_LOGICA BLOCO_COD CONDICIONAL_TAIL  // parseIf()
+CONDICIONAL_TAIL   -> "else" BLOCO_COD | ε                            // parseElse()
 
-COMENTARIO       -> "{" .*? "}"
+COMENTARIO         -> "{" .*? "}"                        // parseComment() *(opcional)*
 
-SIMB_TERM        -> ";"
-ID               -> (letra)(letra | digito | "_")*
+SIMB_TERM          -> ";"
+ID                 -> (letra)(letra | digito | "_")*
