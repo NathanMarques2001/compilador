@@ -1,8 +1,8 @@
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Exceptions\CompilerException.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Exceptions\ErrorHandler.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Grammar\SyntaticAnalyzer.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Lexical\LexicalAnalyzer.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Lexical\Token.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Main.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Table\SymbolsTable.java
-C:\Users\natha\dev\compilador\src\main\java\com\compiladores\compilador\Utils\ReadLCCode.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Exceptions/CompilerException.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Exceptions/ErrorHandler.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Grammar/SyntaticAnalyzer.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Lexical/LexicalAnalyzer.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Lexical/Token.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Main.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Table/SymbolsTable.java
+/workspaces/compilador/src/main/java/com/compiladores/compilador/Utils/ReadLCCode.java

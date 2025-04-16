@@ -1,0 +1,63 @@
+PROGRAMA         -> DECLS BLOCO_COD
+
+DECLS            -> DECLARACAO DECLS | ε
+
+DECLARACAO       -> TP_PRIMITIVO ID SIMB_TERM
+                  | TP_PRIMITIVO ID = CONST SIMB_TERM
+                  | "final" ID = CONST SIMB_TERM
+
+TP_PRIMITIVO     -> "int" | "string" | "byte" | "boolean"
+
+CONST            -> NUM_INT
+                  | NUM_HEX
+                  | "true"
+                  | "false"
+                  | STRING
+
+NUM_INT          -> [0-9]+
+NUM_HEX          -> "0h"[0-9A-Fa-f]+
+STRING           -> "\"" .*? "\""
+
+BLOCO_COD        -> "begin" COMANDOS "end"
+
+COMANDOS         -> COMANDO COMANDOS | ε
+
+COMANDO          -> ESCREVE
+                  | LER
+                  | ATRIBUICAO
+                  | LOOP
+                  | CONDICIONAL
+                  | COMENTARIO
+
+ESCREVE          -> ("write" | "writeln") STR_CONCAT SIMB_TERM
+STR_CONCAT       -> "," (ID | CONST | STRING) STR_CONCAT_TAIL
+STR_CONCAT_TAIL  -> STR_CONCAT | ε
+
+LER              -> "readln" "," ID SIMB_TERM
+
+ATRIBUICAO       -> ID "=" EXPRESSAO SIMB_TERM
+
+EXPRESSAO        -> EXPRESSAO_LOGICA
+
+EXPRESSAO_LOGICA -> EXPRESSAO_ARITM COMPARADOR EXPRESSAO_ARITM
+                  | EXPRESSAO_LOGICA LOGICO EXPRESSAO_LOGICA
+                  | "not" EXPRESSAO_LOGICA
+                  | EXPRESSAO_ARITM
+
+COMPARADOR       -> "==" | "<" | "<=" | "<>" | ">" | ">="
+
+LOGICO           -> "and" | "or"
+
+EXPRESSAO_ARITM  -> TERMO (( "+" | "-" ) TERMO)*
+TERMO            -> FATOR (( "*" | "/" ) FATOR)*
+FATOR            -> CONST | ID | "(" EXPRESSAO ")"
+
+LOOP             -> "while" EXPRESSAO_LOGICA BLOCO_COD
+
+CONDICIONAL      -> "if" EXPRESSAO_LOGICA BLOCO_COD CONDICIONAL_TAIL
+CONDICIONAL_TAIL -> "else" BLOCO_COD | ε
+
+COMENTARIO       -> "{" .*? "}"
+
+SIMB_TERM        -> ";"
+ID               -> (letra)(letra | digito | "_")*
