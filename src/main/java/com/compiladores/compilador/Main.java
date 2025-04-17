@@ -46,7 +46,7 @@ public class Main {
      private static void runSyntacticAnalysis(SymbolsTable table) throws CompilerException {
          SyntaticAnalyzer parser = new SyntaticAnalyzer(table);
          System.out.println("Iniciando análise sintática...");
-         parser.analyze();
+         parser.parseProgram();
          System.out.println("Análise sintática concluída!");
      }
 }

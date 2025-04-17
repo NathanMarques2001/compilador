@@ -43,7 +43,7 @@ public class LexicalAnalyzer {
             }
 
             if ((matcher = bool.matcher(code)).lookingAt()) {
-                symbolsTable.addToken(new Token(this.trueOrFalse(matcher.group()), "RESERVED_WORD", "BOOLEAN", lineNumber, columnNumber));
+                symbolsTable.addToken(new Token(this.trueOrFalse(matcher.group()), "CONST", "BOOLEAN", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = strings.matcher(code)).lookingAt()) {
                 symbolsTable.addToken(new Token(matcher.group(), "CONST", "STRING", lineNumber, columnNumber));

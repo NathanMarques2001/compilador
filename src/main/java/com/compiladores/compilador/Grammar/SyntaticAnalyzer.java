@@ -1,9 +1,11 @@
+
 package com.compiladores.compilador.Grammar;
 
 import com.compiladores.compilador.Exceptions.CompilerException;
 import com.compiladores.compilador.Exceptions.ErrorHandler;
 import com.compiladores.compilador.Lexical.Token;
 import com.compiladores.compilador.Table.SymbolsTable;
+
 
 public class SyntaticAnalyzer {
 
@@ -14,16 +16,6 @@ public class SyntaticAnalyzer {
     public SyntaticAnalyzer(SymbolsTable symbolsTable) {
         this.symbolsTable = symbolsTable;
         this.currentToken = symbolsTable.currentToken(this.currentTokenIndex);
-    }
-
-    public void analyze() {
-        try {
-            this.typeGeneration();
-            this.beginGeneration();
-            System.out.println("Analise sintatica concluida com sucesso!");
-        } catch (Exception e) {
-            System.err.println("Erro de analise sintatica: " + e.getMessage());
-        }
     }
 
     private void nextToken() {
@@ -47,44 +39,102 @@ public class SyntaticAnalyzer {
         }
     }
 
-    void typeGeneration() throws CompilerException {
-        if (!this.identifyType()) {
-            return;
-        }
-        this.nextToken();
-        this.expectClassification("ID");
-
-        this.nextToken();
-        if (this.currentToken.getName().equals("=")) {
-            this.nextToken();
-            if (!this.identifyCONSTorID()) {
-                ErrorHandler.syntaxErrorAssignment(currentToken.getName());
-            }
-            this.nextToken();
-        }
-        expectName(";");
-        this.nextToken();
-        this.typeGeneration();
-    }
-
-    void beginGeneration() throws CompilerException {
-        if (this.currentToken.getName().equals("begin")) {
-            this.nextToken();
-            while (!this.currentToken.getName().equals("end")) {
-                this.statements();
-            }
+    public void parseProgram() {
+        try {
+            this.parseDeclarations();
+            this.parseBlock();
+            System.out.println("Analise sintatica concluida com sucesso!");
+        } catch (Exception e) {
+            System.err.println("Erro de analise sintatica: " + e.getMessage());
         }
     }
 
-    void statements() throws CompilerException {
-        this.ifGeneration();
+    void parseDeclarations() throws CompilerException {
+        if (this.isPrimitiveType()) {
+            this.nextToken();
+            this.expectClassification("ID");
+
+            this.nextToken();
+            if (this.currentToken.getName().equals("=")) {
+                this.nextToken();
+                if (!this.isConstOrId()) {
+                    ErrorHandler.syntaxErrorAssignment(this.currentToken.getName());
+                }
+                this.nextToken();
+            }
+            expectName(";");
+            this.nextToken();
+            this.parseDeclarations();
+        }
+    }
+
+    void parseBlock() throws CompilerException {
+        this.expectName("begin");
+        this.nextToken();
+        this.parseCommands();
+        this.expectName("end");
+    }
+
+    void parseCommands() throws CompilerException {
+        if (this.currentToken.getName().equals("end")) {
+            this.nextToken();
+            this.parseCommand();
+            this.parseCommands();
+        }
+    }
+
+    void parseCommand() throws CompilerException {
+        if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
+            this.parseWrite();
+        }
+        if (this.currentToken.getName().equals("readln")) {
+            this.parseReadln();
+        }
+        if (this.currentToken.getClassification().equals("ID")) {
+            this.parseAssignment();
+        }
         this.elseGeneration();
-        this.readlnGeneration();
-        this.writeGeneration();
-        this.assignmentGeneration();
+        this.ifGeneration();
         this.whileGeneration();
     }
 
+    void parseWrite() throws CompilerException {
+        this.nextToken();
+        this.expectName(",");
+        this.nextToken();
+        if (!this.isConstOrId()) {
+            ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+        }
+        this.nextToken();
+        if (!this.currentToken.getName().equals(";")) {
+            this.parseWrite();
+            return;
+        }
+        this.expectName(";");
+        this.nextToken();
+    }
+
+    void parseReadln() throws CompilerException {
+        this.nextToken();
+        this.expectName(",");
+        this.nextToken();
+        this.expectClassification("ID");
+        this.nextToken();
+        this.expectName(";");
+        this.nextToken();
+    }
+
+    void parseAssignment() throws CompilerException {
+            this.nextToken();
+            this.expectName("=");
+            this.nextToken();
+            this.expectName(";");
+            this.nextToken();
+        }
+    }
+
+    void parseExpression(){
+}
 
     void ifGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("if")) {
@@ -117,67 +167,6 @@ public class SyntaticAnalyzer {
         }
     }
 
-    void readlnGeneration() throws CompilerException {
-        if (this.currentToken.getName().equals("readln")) {
-            this.nextToken();
-            this.expectName(",");
-            this.nextToken();
-            this.expectClassification("ID");
-            this.nextToken();
-            this.expectName(";");
-            this.nextToken();
-        }
-    }
-
-    void writeGeneration() throws CompilerException {
-        if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
-            this.nextToken();
-            this.expectName(",");
-            this.nextToken();
-            if (!this.identifyCONSTorID()) {
-                ErrorHandler.syntaxErrorAssignment(currentToken.getName());
-            }
-            this.nextToken();
-            while (!this.currentToken.getName().equals(";")) {
-                if (this.currentToken.getName().equals(",")) {
-                    this.nextToken();
-                }
-                if (!this.identifyCONSTorID()) {
-                    ErrorHandler.syntaxErrorAssignment(currentToken.getName());
-                }
-                this.nextToken();
-            }
-            this.expectName(";");
-            this.nextToken();
-        }
-    }
-
-    void assignmentGeneration() throws CompilerException {
-        if (this.currentToken.getClassification().equals("ID")) {
-            this.nextToken();
-            this.expectName("=");
-            this.nextToken();
-            if (!this.identifyMathematicalOperationGeneration() && !this.identifyBooleanValue()
-                    && !this.identifyCONSTorID()) {
-                ErrorHandler.syntaxErrorAssignment(currentToken.getName());
-            }
-            this.nextToken();
-
-            if (!this.currentToken.equals("=")) {
-                if (this.identifyLogicalOperator() || this.identifyMathematicalOperator()) {
-                    this.nextToken();
-                    if (!this.identifyCONSTorID() && !this.identifyBooleanValue()) {
-                        ErrorHandler.syntaxErrorAssignment(currentToken.getName());
-                    }
-                    this.nextToken();
-                }
-            }
-
-            this.expectName(";");
-            this.nextToken();
-        }
-    }
-
     void whileGeneration() throws CompilerException {
         if (this.currentToken.getName().equals("while")) {
             this.nextToken();
@@ -190,16 +179,14 @@ public class SyntaticAnalyzer {
         }
     }
 
-    boolean identifyType() {
+    boolean isPrimitiveType() {
         return (currentToken.getName().equals("int") || currentToken.getName().equals("string")
-                || currentToken.getName().equals("boolean") || currentToken.getName().equals("final")
-                || currentToken.getName().equals("byte"));
+                || currentToken.getName().equals("boolean") || currentToken.getName().equals("byte"));
     }
 
-    boolean identifyCONSTorID() {
+    boolean isConstOrId() {
         return (this.currentToken.getClassification().equals("CONST")
-                || this.currentToken.getClassification().equals("ID")
-                || this.identifyBooleanValue());
+                || this.currentToken.getClassification().equals("ID"));
     }
 
     boolean identifyLogicalOperator() {
@@ -245,5 +232,4 @@ public class SyntaticAnalyzer {
     boolean identifyParentheses() {
         return this.currentToken.getName().equals("(") || this.currentToken.getName().equals(")");
     }
-
 }
