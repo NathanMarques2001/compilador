@@ -9,7 +9,7 @@ import com.compiladores.compilador.Table.SymbolsTable;
 
 public class SyntaticAnalyzer {
 
-    private SymbolsTable symbolsTable;
+    private final SymbolsTable symbolsTable;
     private Token currentToken;
     private int currentTokenIndex = 0;
 
@@ -29,13 +29,13 @@ public class SyntaticAnalyzer {
 
     private void expectClassification(String expected) throws CompilerException {
         if (!currentToken.getClassification().equals(expected) && !currentToken.getName().equals(expected)) {
-            ErrorHandler.syntaxError(expected, currentToken.getClassification());
+            ErrorHandler.syntaxError(expected, currentToken);
         }
     }
 
     private void expectName(String expected) throws CompilerException {
         if (!currentToken.getName().equals(expected)) {
-            ErrorHandler.syntaxError(expected, currentToken.getClassification());
+            ErrorHandler.syntaxError(expected, currentToken);
         }
     }
 
@@ -58,7 +58,7 @@ public class SyntaticAnalyzer {
             if (this.currentToken.getName().equals("=")) {
                 this.nextToken();
                 if (!this.isConstOrId()) {
-                    ErrorHandler.syntaxErrorAssignment(this.currentToken.getName());
+                    ErrorHandler.syntaxErrorAssignment(this.currentToken);
                 }
                 this.nextToken();
             }
@@ -103,7 +103,7 @@ public class SyntaticAnalyzer {
         } else if (this.currentToken.getName().equals("begin")) {
             this.parseBlock();
         } else {
-            ErrorHandler.syntaxError("Comando válido esperado", currentToken.getName());
+            ErrorHandler.syntaxError("Comando válido esperado", currentToken);
         }
     }
 
@@ -119,7 +119,7 @@ public class SyntaticAnalyzer {
         nextToken();
 
         if (!isConstOrId()) {
-            ErrorHandler.syntaxErrorAssignment(currentToken.getName());
+            ErrorHandler.syntaxErrorAssignment(currentToken);
         }
         nextToken();
         parseStrConcatTail();
@@ -206,7 +206,7 @@ public class SyntaticAnalyzer {
 
     // FATOR -> CONST | ID | "(" EXPRESSAO ")"
     void parseFactor() throws CompilerException {
-        if (isConstOrId() || identifyBooleanValue()) {
+        if (isConstOrId() || this.currentToken.getType().equals("BOOLEAN")) {
             nextToken();
         } else if (currentToken.getName().equals("(")) {
             nextToken();
@@ -214,7 +214,7 @@ public class SyntaticAnalyzer {
             expectName(")");
             nextToken();
         } else {
-            ErrorHandler.syntaxError("CONST, ID ou EXPRESSÃO entre parênteses", currentToken.getName());
+            ErrorHandler.syntaxError("CONST, ID ou EXPRESSÃO entre parênteses", currentToken);
         }
     }
 
@@ -251,41 +251,5 @@ public class SyntaticAnalyzer {
                 || this.currentToken.getName().equals(">=") || this.currentToken.getName().equals("<>")
                 || this.currentToken.getName().equals("and") || this.currentToken.getName().equals("or")
                 || this.currentToken.getName().equals("not"));
-    }
-
-    boolean identifyMathematicalOperator() {
-        return (this.currentToken.getName().equals("+") || this.currentToken.getName().equals("-")
-                || this.currentToken.getName().equals("*") || this.currentToken.getName().equals("/"));
-    }
-
-    boolean identifyBooleanValue() {
-        return this.currentToken.getType().equals("BOOLEAN");
-    }
-
-    boolean identifyMathematicalOperationGeneration() throws CompilerException {
-        if (this.isConstOrId() || this.identifyParentheses()) {
-            if (this.identifyParentheses()) {
-                this.nextToken(); // Avança para o conteúdo dentro dos parênteses
-                if (!this.identifyMathematicalOperationGeneration()) {
-                    ErrorHandler.syntaxError("Expressão matemática inválida dentro dos parênteses.", "");
-                }
-                this.expectName(")");
-                this.nextToken();
-            } else {
-                this.nextToken();
-            }
-
-            if (this.identifyMathematicalOperator()) {
-                this.nextToken();
-                return this.identifyMathematicalOperationGeneration();
-            }
-
-            this.previousToken();
-        }
-        return false;
-    }
-
-    boolean identifyParentheses() {
-        return this.currentToken.getName().equals("(") || this.currentToken.getName().equals(")");
     }
 }
