@@ -50,7 +50,7 @@ public class SyntaticAnalyzer {
     }
 
     void parseDeclarations() throws CompilerException {
-        if (this.isPrimitiveType()) {
+        if (this.isPrimitiveType() || this.currentToken.getName().equals("final")) {
             this.nextToken();
             this.expectClassification("ID");
 
@@ -73,11 +73,15 @@ public class SyntaticAnalyzer {
         this.nextToken();
         this.parseCommands();
         this.expectName("end");
+        if (this.currentTokenIndex < this.symbolsTable.getSize() - 1) {
+            this.nextToken();
+        } else {
+            System.out.println(this.currentToken.getName());
+        }
     }
 
     void parseCommands() throws CompilerException {
-        if (this.currentToken.getName().equals("end")) {
-            this.nextToken();
+        if (!this.currentToken.getName().equals("end")) {
             this.parseCommand();
             this.parseCommands();
         }
@@ -86,32 +90,45 @@ public class SyntaticAnalyzer {
     void parseCommand() throws CompilerException {
         if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
             this.parseWrite();
-        }
-        if (this.currentToken.getName().equals("readln")) {
+        } else if (this.currentToken.getName().equals("readln")) {
             this.parseReadln();
-        }
-        if (this.currentToken.getClassification().equals("ID")) {
+        } else if (this.currentToken.getClassification().equals("ID")) {
             this.parseAssignment();
+        } else if (this.currentToken.getName().equals("while")) {
+            this.parseWhile();
+        } else if (this.currentToken.getName().equals("if")) {
+            this.parseIf();
+        } else if (this.currentToken.getName().equals("else")) {
+            this.parseElse();
+        } else if (this.currentToken.getName().equals("begin")) {
+            this.parseBlock();
+        } else {
+            ErrorHandler.syntaxError("Comando válido esperado", currentToken.getName());
         }
-        this.elseGeneration();
-        this.ifGeneration();
-        this.whileGeneration();
     }
 
     void parseWrite() throws CompilerException {
-        this.nextToken();
-        this.expectName(",");
-        this.nextToken();
-        if (!this.isConstOrId()) {
+        nextToken();
+        parseStrConcat();
+        expectName(";");
+        nextToken();
+    }
+
+    void parseStrConcat() throws CompilerException {
+        expectName(",");
+        nextToken();
+
+        if (!isConstOrId()) {
             ErrorHandler.syntaxErrorAssignment(currentToken.getName());
         }
-        this.nextToken();
-        if (!this.currentToken.getName().equals(";")) {
-            this.parseWrite();
-            return;
+        nextToken();
+        parseStrConcatTail();
+    }
+
+    void parseStrConcatTail() throws CompilerException {
+        if (currentToken.getName().equals(",")) {
+            parseStrConcat();
         }
-        this.expectName(";");
-        this.nextToken();
     }
 
     void parseReadln() throws CompilerException {
@@ -125,58 +142,97 @@ public class SyntaticAnalyzer {
     }
 
     void parseAssignment() throws CompilerException {
-            this.nextToken();
-            this.expectName("=");
-            this.nextToken();
-            this.expectName(";");
-            this.nextToken();
+        this.nextToken();
+        this.expectName("=");
+        this.nextToken();
+        this.parseExpression();
+        this.expectName(";");
+        this.nextToken();
+    }
+
+    // EXPRESSAO -> EXPRESSAO_LOGICA
+    void parseExpression() throws CompilerException {
+        parseLogicalExpression();
+    }
+
+    // EXPRESSAO_LOGICA -> "not" EXPRESSAO_LOGICA
+    //                   | EXPRESSAO_ARITM COMPARADOR EXPRESSAO_ARITM
+    //                   | EXPRESSAO_LOGICA LOGICO EXPRESSAO_LOGICA
+    //                   | EXPRESSAO_ARITM
+    void parseLogicalExpression() throws CompilerException {
+        if (currentToken.getName().equals("not")) {
+            nextToken();
+            parseLogicalExpression();
+            return;
+        }
+
+        parseArithmeticExpression();
+
+        if (identifyLogicalOperator()) {
+            nextToken();
+            parseLogicalExpression();  // lado direito pode ser nova lógica
         }
     }
 
-    void parseExpression(){
-}
+    // EXPRESSAO_ARITM -> TERMO EXPRESSAO_ARITM_TAIL
+    void parseArithmeticExpression() throws CompilerException {
+        parseTerm();
+        parseArithmeticExpressionTail();
+    }
 
-    void ifGeneration() throws CompilerException {
-        if (this.currentToken.getName().equals("if")) {
-            this.nextToken();
-            if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID()
-                    || this.identifyBooleanValue()) {
-                this.nextToken();
-                if (this.identifyLogicalOperator()) {
-                    this.nextToken();
-                    if (this.identifyMathematicalOperationGeneration() || this.identifyCONSTorID()
-                            || this.identifyBooleanValue()) {
-                        this.nextToken();
-                        while (!currentToken.getName().equals("end") && !currentToken.getName().equals("else")) {
-                            this.nextToken();
-                            this.statements();
-                        }
-                    }
-                }
-            }
+    // EXPRESSAO_ARITM_TAIL -> ("+"|"-") TERMO EXPRESSAO_ARITM_TAIL | ε
+    void parseArithmeticExpressionTail() throws CompilerException {
+        if (currentToken.getName().equals("+") || currentToken.getName().equals("-")) {
+            nextToken();
+            parseTerm();
+            parseArithmeticExpressionTail();
         }
     }
 
-    void elseGeneration() throws CompilerException {
-        if (this.currentToken.getName().equals("else")) {
-            this.nextToken();
-            while (!this.currentToken.getName().equals("end")) {
-                this.nextToken();
-                this.statements();
-            }
+    // TERMO -> FATOR TERMO_TAIL
+    void parseTerm() throws CompilerException {
+        parseFactor();
+        parseTermTail();
+    }
+
+    // TERMO_TAIL -> ("*"|"/") FATOR TERMO_TAIL | ε
+    void parseTermTail() throws CompilerException {
+        if (currentToken.getName().equals("*") || currentToken.getName().equals("/")) {
+            nextToken();
+            parseFactor();
+            parseTermTail();
         }
     }
 
-    void whileGeneration() throws CompilerException {
-        if (this.currentToken.getName().equals("while")) {
-            this.nextToken();
-            this.expectClassification("ID");
-            while (!this.currentToken.getName().equals("end")) {
-                this.nextToken();
-                this.beginGeneration();
-            }
-            this.nextToken();
+    // FATOR -> CONST | ID | "(" EXPRESSAO ")"
+    void parseFactor() throws CompilerException {
+        if (isConstOrId() || identifyBooleanValue()) {
+            nextToken();
+        } else if (currentToken.getName().equals("(")) {
+            nextToken();
+            parseExpression();
+            expectName(")");
+            nextToken();
+        } else {
+            ErrorHandler.syntaxError("CONST, ID ou EXPRESSÃO entre parênteses", currentToken.getName());
         }
+    }
+
+    void parseWhile() throws CompilerException {
+        this.nextToken();
+        this.parseExpression();
+        this.parseBlock();
+    }
+
+    void parseIf() throws CompilerException {
+        nextToken();
+        parseExpression();
+        parseBlock();
+    }
+
+    void parseElse() throws CompilerException {
+        this.nextToken();
+        this.parseBlock();
     }
 
     boolean isPrimitiveType() {
@@ -207,7 +263,7 @@ public class SyntaticAnalyzer {
     }
 
     boolean identifyMathematicalOperationGeneration() throws CompilerException {
-        if (this.identifyCONSTorID() || this.identifyParentheses()) {
+        if (this.isConstOrId() || this.identifyParentheses()) {
             if (this.identifyParentheses()) {
                 this.nextToken(); // Avança para o conteúdo dentro dos parênteses
                 if (!this.identifyMathematicalOperationGeneration()) {
