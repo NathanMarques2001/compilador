@@ -25,4 +25,6 @@ begin
   end
   end
   n=1+2*3/2+(10-2);
+  writeln,"Seu nome eh: ",nome;
+  writeln,"Resultado final da soma: ",n;
 end
