@@ -1,1 +1,1 @@
-1. A Análise Léxica também precisa ser recursiva? Se sim, o ideal é tudo no compilador ser recursivo?
+1. Posso integrar o analisador semantico ao analisador sintatico?

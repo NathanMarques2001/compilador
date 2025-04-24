@@ -23,10 +23,6 @@ public class SyntaticAnalyzer {
         this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
     }
 
-    private void previousToken() {
-        this.currentToken = this.symbolsTable.currentToken(--this.currentTokenIndex);
-    }
-
     private void expectClassification(String expected) throws CompilerException {
         if (!currentToken.getClassification().equals(expected) && !currentToken.getName().equals(expected)) {
             ErrorHandler.syntaxError(expected, currentToken);

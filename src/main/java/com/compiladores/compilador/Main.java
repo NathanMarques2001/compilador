@@ -3,6 +3,7 @@ package com.compiladores.compilador;
 import com.compiladores.compilador.Exceptions.CompilerException;
 import com.compiladores.compilador.Grammar.SyntaticAnalyzer;
 import com.compiladores.compilador.Lexical.LexicalAnalyzer;
+import com.compiladores.compilador.Semantic.SemanticAnalyzer;
 import com.compiladores.compilador.Table.SymbolsTable;
 import com.compiladores.compilador.Utils.ReadLCCode;
 
@@ -30,6 +31,10 @@ public class Main {
 
             // Executa a análise sintática
             runSyntacticAnalysis(table);
+
+            // Executa a análise semântica
+            runSemanticAnalysis(table);
+
         } catch (CompilerException e) {
             System.err.println("Erro no compilador: " + e.getMessage());
         } catch (Exception e) {
@@ -43,10 +48,16 @@ public class Main {
         table.printSymbols();
     }
 
-     private static void runSyntacticAnalysis(SymbolsTable table) throws CompilerException {
-         SyntaticAnalyzer parser = new SyntaticAnalyzer(table);
-         System.out.println("Iniciando análise sintática...");
-         parser.parseProgram();
-         System.out.println("Análise sintática concluída!");
-     }
+    private static void runSyntacticAnalysis(SymbolsTable table) throws CompilerException {
+        SyntaticAnalyzer parser = new SyntaticAnalyzer(table);
+        System.out.println("Iniciando análise sintática...");
+        parser.parseProgram();
+        System.out.println("Análise sintática concluída!");
+    }
+
+    private static void runSemanticAnalysis(SymbolsTable table) throws CompilerException {
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(table);
+        semanticAnalyzer.analyze();
+        System.out.println("Análise semântica concluída!");
+    }
 }

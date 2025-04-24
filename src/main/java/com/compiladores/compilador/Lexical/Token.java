@@ -3,7 +3,7 @@ package com.compiladores.compilador.Lexical;
 public class Token {
 
     private final String name;
-    private final String type;
+    private String type;
     private final String classification;
     private final int line;
     private final int column;
@@ -34,6 +34,10 @@ public class Token {
 
     public int getColumn() {
         return this.column;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     @Override
