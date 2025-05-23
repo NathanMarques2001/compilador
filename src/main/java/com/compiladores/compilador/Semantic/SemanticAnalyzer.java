@@ -25,9 +25,9 @@ public class SemanticAnalyzer {
         this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
     }
 
-    private void expectAssignment() throws CompilerException {
-        if (!this.currentToken.getType().equalsIgnoreCase(this.currentType) && !currentType.equalsIgnoreCase("final")) {
-            ErrorHandler.semanticErrorAssignment(currentToken, currentType);
+    private void expectAssignment(Token token) throws CompilerException {
+        if (!token.getType().equalsIgnoreCase(this.currentType)) {
+            ErrorHandler.semanticErrorAssignment(token, currentType);
         }
     }
 
@@ -45,14 +45,18 @@ public class SemanticAnalyzer {
         if (isPrimitiveType() || this.currentToken.getName().equals("final")) {
             this.currentType = this.currentToken.getName();
             this.nextToken();
-            System.out.println(this.currentToken.getName());
-            this.currentToken.setType(this.currentType);
-            this.declaredTokens.add(this.currentToken);
+            Token declaredToken = this.currentToken;
+            declaredToken.setType(this.currentType);
+            this.declaredTokens.add(declaredToken);
             this.nextToken();
             if (this.currentToken.getName().equals("=")) {
                 this.nextToken();
-                System.out.println(this.currentToken.getName());
-                this.expectAssignment();
+                if(this.currentType.equals("final")) {
+                    this.currentType = this.currentToken.getType();
+                    declaredToken.setType(this.currentToken.getType());
+                }
+                this.expectAssignment(declaredToken);
+                System.out.println(declaredToken.getName() + " " + declaredToken.getType() + " - " + this.currentType);
                 this.nextToken();
             }
             this.nextToken();
@@ -82,7 +86,8 @@ public class SemanticAnalyzer {
 
             if (this.currentToken.getName().equals("=")) {
                 this.nextToken();
-                this.expectAssignment();
+                this.expectAssignment(token);
+                System.out.println(token.getName() + " " + token.getType() + " - " + this.currentType);
                 this.nextToken();
             } else if (this.identifyLogicalOperator()) {
                 this.nextToken();

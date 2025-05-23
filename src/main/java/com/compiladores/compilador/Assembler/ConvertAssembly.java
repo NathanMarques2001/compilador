@@ -75,8 +75,20 @@ public class ConvertAssembly {
 
         assemblyCode.append(".386\n")
                 .append(".model flat, stdcall\n")
-                .append("option casemap:none\n\n")
-                .append("include \\masm32\\include\\masm32rt.inc\n\n");
+                .append("option casemap :none\n\n")
+                .append("include \\masm32\\include\\masm32rt.inc\n")
+                .append("include \\masm32\\include\\kernel32.inc\n")
+                .append("include \\masm32\\include\\masm32.inc\n")
+                .append("include \\masm32\\include\\msvcrt.inc\n")
+                .append("includelib \\masm32\\lib\\kernel32.lib\n")
+                .append("includelib \\masm32\\lib\\masm32.lib\n")
+                .append("includelib \\masm32\\lib\\msvcrt.lib\n")
+                .append("include \\masm32\\macros\\macros.asm\n\n")
+                .append(".data\n\n")
+                .append(".code\n")
+                .append("start:\n")
+                .append("invoke ExitProcess, 0\n")
+                .append("end start\n");
 
         writeAssemblyCode(assemblyCode.toString());
     }

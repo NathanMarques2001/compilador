@@ -12,10 +12,10 @@ public class LexicalAnalyzer {
     private final SymbolsTable symbolsTable;
 
     private final Pattern numbers = Pattern.compile("\\d+");
-    private final Pattern hexadecimals = Pattern.compile("0h[a-f|0-9]{4}");
+    private final Pattern hexadecimals = Pattern.compile("0h[a-fA-F0-9]{4}");
     private final Pattern identifiers = Pattern.compile("[a-zA-Z_]\\w*");
     private final Pattern bool = Pattern.compile("true|false");
-    private final Pattern operators = Pattern.compile("==|!=|<=|>=|<|>|[+\\-*/=]");
+    private final Pattern operators = Pattern.compile("==|<>|<=|>=|<|>|[+\\-*/=]");
     private final Pattern delimiters = Pattern.compile("[,;()]");
     private final Pattern comments = Pattern.compile("/\\*(.|\\R)*?\\*/|\\{[^\\}]*\\}");
     private final Pattern strings = Pattern.compile("\"([^\"\\\\]|\\\\.)*\"");
