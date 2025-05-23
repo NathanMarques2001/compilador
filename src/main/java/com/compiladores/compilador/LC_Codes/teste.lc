@@ -1,4 +1,4 @@
-/* Teste cobrindo todas as especificacoes da linguagem LC */
+/* Teste cobrindo todas as especificações da linguagem LC */
 int n;
 string nome;
 boolean naoTerminou;

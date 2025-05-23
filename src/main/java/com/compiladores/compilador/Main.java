@@ -15,7 +15,7 @@ public class Main {
 //            System.err.println("Uso: java -cp out com.compiladores.compilador.Main <caminho_do_arquivo>");
 //            return;
 //        }
-
+// teste
         try {
             // Obtém o caminho do arquivo a partir dos argumentos
             String filePath = "C:\\Users\\natha\\dev\\compilador\\src\\main\\java\\com\\compiladores\\compilador\\LC_Codes\\teste.lc";
