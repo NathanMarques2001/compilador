@@ -43,16 +43,16 @@ public class LexicalAnalyzer {
             }
 
             if ((matcher = bool.matcher(code)).lookingAt()) {
-                symbolsTable.addToken(new Token(this.trueOrFalse(matcher.group()), "CONST", "BOOLEAN", lineNumber, columnNumber));
+                symbolsTable.addToken(new Token(this.trueOrFalse(matcher.group()), "CONST", "boolean", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = strings.matcher(code)).lookingAt()) {
-                symbolsTable.addToken(new Token(matcher.group(), "CONST", "STRING", lineNumber, columnNumber));
+                symbolsTable.addToken(new Token(matcher.group(), "CONST", "string", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = hexadecimals.matcher(code)).lookingAt()) {
-                symbolsTable.addToken(new Token(matcher.group(), "CONST", "BYTE", lineNumber, columnNumber));
+                symbolsTable.addToken(new Token(matcher.group(), "CONST", "byte", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = numbers.matcher(code)).lookingAt()) {
-                symbolsTable.addToken(new Token(matcher.group(), "CONST", "INT", lineNumber, columnNumber));
+                symbolsTable.addToken(new Token(matcher.group(), "CONST", "int", lineNumber, columnNumber));
                 matched = true;
             } else if ((matcher = isReservedWordsOrID(code)) != null) {
                 String lexeme = matcher.group();

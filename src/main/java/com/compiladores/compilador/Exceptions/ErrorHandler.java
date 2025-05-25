@@ -42,10 +42,10 @@ public class ErrorHandler {
         );
     }
 
-    public static void semanticErrorInvalidArithmetic(Token found, String invalidType) throws CompilerException {
+    public static void semanticErrorInvalidExpression(String correctType, String invalidType, Token found) throws CompilerException {
         throw new CompilerException(
-                "Erro Semantico: operacao aritmetica invalida com tipo '" + invalidType +
-                        "' em '" + found.getName() + "', na linha " + found.getLine() + ", coluna " + found.getColumn()
+                "Erro Semantico: operacao invalida! Era esperado um tipo '" + correctType +
+                        "', mas foi declarado um tipo '" + invalidType + "', na linha " + found.getLine()
         );
     }
 }

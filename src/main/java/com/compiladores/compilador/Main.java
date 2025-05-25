@@ -15,7 +15,7 @@ public class Main {
 //            System.err.println("Uso: java -cp out com.compiladores.compilador.Main <caminho_do_arquivo>");
 //            return;
 //        }
-// teste
+
         try {
             // Obtém o caminho do arquivo a partir dos argumentos
             String filePath = "C:\\Users\\natha\\dev\\compilador\\src\\main\\java\\com\\compiladores\\compilador\\LC_Codes\\teste.lc";
@@ -43,21 +43,23 @@ public class Main {
     }
 
     private static void runLexicalAnalysis(String filePath, ReadLCCode lcReader, LexicalAnalyzer lexer, SymbolsTable table) throws CompilerException {
+        System.out.println("========================================\nIniciando análise léxica...");
         lcReader.readFileAndAnalyze(filePath, lexer);
-        System.out.println("Analise lexica concluida!");
-        table.printSymbols();
+        System.out.println("Análise léxica concluída!\n========================================");
+        //table.printSymbols();
     }
 
     private static void runSyntacticAnalysis(SymbolsTable table) throws CompilerException {
         SyntaticAnalyzer parser = new SyntaticAnalyzer(table);
         System.out.println("Iniciando análise sintática...");
         parser.parseProgram();
-        System.out.println("Análise sintática concluída!");
+        System.out.println("Análise sintática concluída!\n========================================");
     }
 
     private static void runSemanticAnalysis(SymbolsTable table) throws CompilerException {
         SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(table);
+        System.out.println("Iniciando análise semântica...");
         semanticAnalyzer.analyze();
-        System.out.println("Análise semântica concluída!");
+        System.out.println("Análise semântica concluída!\n========================================");
     }
 }

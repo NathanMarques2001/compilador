@@ -19,7 +19,6 @@ public class SyntaticAnalyzer {
     }
 
     private void nextToken() {
-        System.out.println(this.currentToken.getName());
         this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
     }
 
@@ -39,7 +38,6 @@ public class SyntaticAnalyzer {
         try {
             this.parseDeclarations();
             this.parseBlock();
-            System.out.println("Analise sintatica concluida com sucesso!");
         } catch (Exception e) {
             System.err.println("Erro de analise sintatica: " + e.getMessage());
         }
@@ -71,8 +69,6 @@ public class SyntaticAnalyzer {
         this.expectName("end");
         if (this.currentTokenIndex < this.symbolsTable.getSize() - 1) {
             this.nextToken();
-        } else {
-            System.out.println(this.currentToken.getName());
         }
     }
 

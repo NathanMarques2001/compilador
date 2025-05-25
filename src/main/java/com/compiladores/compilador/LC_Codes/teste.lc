@@ -1,4 +1,4 @@
-/* Teste cobrindo todas as especificações da linguagem LC */
+/* Teste cobrindo todas as especificacoes da linguagem LC */
 int n;
 string nome;
 boolean naoTerminou;
@@ -8,23 +8,23 @@ byte hexa=0h0010;
 begin
   write,"Digite seu nome: ";
   readln,nome;
-  naoTerminou=true;
+  naoTerminou=true; {esta aceitando string e numeros}
   n=0;
   while naoTerminou begin
     writeln,"Ola' ",nome;
-    n=n+1;
-    naoTerminou=n<MAXITER;
+    n=n+1;{esta aceitando soma de int com boolean e string}
+    naoTerminou=n<MAXITER;{esta aceitando comparacao de boolean com string}
   end
   if n==10 begin
     naoTerminou=(1+3+5+7+9)<(2+4+6+8+10);
   end
   if naoTerminou==false begin
-    nome="Natan";
+    nome="Natan"; {esta aceitando atribuicoes de boolean e int}
   else begin
-    nome="Nathan";
+    nome="Nathan"; {esta aceitando atribuicoes de boolean e int}
   end
   end
-  n=1+2*3/2+(10-2);
+  n=1+2*3/2+(10-2);{esta aceitando comparaÃ§Ãµes logicas no meio da expressao}
   writeln,"Seu nome eh: ",nome;
   writeln,"Resultado final da soma: ",n;
 end
