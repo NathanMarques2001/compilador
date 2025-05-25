@@ -23,10 +23,10 @@ public class ErrorHandler {
         );
     }
 
-    public static void semanticErrorAssignment(Token found, String correctType) throws CompilerException {
+    public static void semanticErrorAssignment(Token wrongToken, Token token) throws CompilerException {
         throw new CompilerException(
                 "Erro Semantico: atribuicao incorreta! Foi atribuido um tipo '" +
-                        found.getType() + "' a variavel '" + found.getName() + "', mas deveria ter sido atribuido um tipo '" + correctType + "', na linha " + found.getLine() + ", coluna " + found.getColumn()
+                        wrongToken.getType() + "' a variavel '" + token.getName() + "', mas deveria ter sido atribuido um tipo '" + token.getType() + "', na linha " + wrongToken.getLine() + ", coluna " + wrongToken.getColumn()
         );
     }
 

@@ -8,12 +8,12 @@ byte hexa=0h0010;
 begin
   write,"Digite seu nome: ";
   readln,nome;
-  naoTerminou=true; {esta aceitando string e numeros}
+  naoTerminou=true;
   n=0;
   while naoTerminou begin
     writeln,"Ola' ",nome;
-    n=n+1;{esta aceitando soma de int com boolean e string}
-    naoTerminou=n<MAXITER;{esta aceitando comparacao de boolean com string}
+    n=n+1;
+    naoTerminou=n<MAXITER;
   end
   if n==10 begin
     naoTerminou=(1+3+5+7+9)<(2+4+6+8+10);

@@ -25,15 +25,21 @@ public class SemanticAnalyzer {
         this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
     }
 
+    private void previousToken() {
+        this.currentToken = this.symbolsTable.currentToken(--this.currentTokenIndex);
+    }
+
     private void expectAssignment(Token token) throws CompilerException {
-        if (!token.getType().equalsIgnoreCase(this.currentType)) {
-            ErrorHandler.semanticErrorAssignment(token, currentType);
+        if (!this.currentToken.getType().equalsIgnoreCase(token.getType())) {
+            System.out.println("CurrentToken" + this.currentToken + " is not of type " + this.currentToken.getType());
+            ErrorHandler.semanticErrorAssignment(this.currentToken, token);
         }
     }
 
     public void analyze() throws CompilerException {
         try {
             this.checkDeclarations();
+            this.setSymbolsTableTypes();
             this.checkAssignments();
         } catch (Exception e) {
             System.err.println(e.getMessage());
@@ -44,7 +50,7 @@ public class SemanticAnalyzer {
         if (isPrimitiveType() || this.currentToken.getName().equals("final")) {
             this.currentType = this.currentToken.getName();
             this.nextToken();
-            Token declaredToken = this.currentToken;
+            Token declaredToken = this.currentToken; // variavel declarada
             declaredToken.setType(this.currentType);
             this.declaredTokens.add(declaredToken);
             this.nextToken();
@@ -88,7 +94,7 @@ public class SemanticAnalyzer {
 
             if (this.currentToken.getName().equals("=")) {
                 this.nextToken();
-                if (this.isConstOrId()) {
+                if (this.isNotExpression()) {
                     this.expectAssignment(token);
                     this.nextToken();
                 } else {
@@ -163,12 +169,11 @@ public class SemanticAnalyzer {
     }
 
     void checkBooleanExpressionAfterIfOrWhile() throws CompilerException {
-        this.nextToken(); // Avança para o início da expressão após 'if' ou 'while'
+        this.nextToken();
         String expressionType = parseExpressionUntil("begin");
         if (!expressionType.equalsIgnoreCase("boolean")) {
             ErrorHandler.semanticErrorInvalidExpression("boolean", expressionType, this.currentToken);
         }
-        this.nextToken(); // Avança para dentro do bloco
     }
 
     String parseExpressionUntil(String stopToken) throws CompilerException {
@@ -261,12 +266,29 @@ public class SemanticAnalyzer {
         return (op.equals("+") || op.equals("-") || op.equals("*") || op.equals("/"));
     }
 
-    boolean identifyParenthesis() {
-        return (this.currentToken.getName().equals("(") || this.currentToken.getName().equals(")"));
-    }
-
     boolean isConstOrId() {
         return (this.currentToken.getClassification().equalsIgnoreCase("CONST")
                 || this.currentToken.getClassification().equalsIgnoreCase("ID"));
+    }
+
+    void setSymbolsTableTypes() {
+        for (Token declared : this.declaredTokens) {
+            for (int i = 0; i < symbolsTable.getSize(); i++) {
+                Token symbol = symbolsTable.currentToken(i);
+                if (declared.getName().equals(symbol.getName())) {
+                    symbol.setType(declared.getType());
+                }
+            }
+        }
+    }
+
+    boolean isNotExpression() {
+        this.nextToken();
+        if (this.currentToken.getName().equals(";")) {
+            this.previousToken();
+            return true;
+        }
+        this.previousToken();
+        return false;
     }
 }
