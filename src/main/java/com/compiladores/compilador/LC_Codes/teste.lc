@@ -19,12 +19,12 @@ begin
     naoTerminou=(1+3+5+7+9)<(2+4+6+8+10);
   end
   if naoTerminou==false begin
-    nome="Natan"; {esta aceitando atribuicoes de boolean e int}
+    nome="Natan";
   else begin
-    nome="Nathan"; {esta aceitando atribuicoes de boolean e int}
+    nome="Nathan";
   end
   end
-  n=1+2*3/2+(10-2);{esta aceitando comparações logicas no meio da expressao}
+  n=1+2*3/2+(10-2);
   writeln,"Seu nome eh: ",nome;
   writeln,"Resultado final da soma: ",n;
 end

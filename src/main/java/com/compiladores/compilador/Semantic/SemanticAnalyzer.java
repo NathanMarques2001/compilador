@@ -10,155 +10,202 @@ import java.util.ArrayList;
 public class SemanticAnalyzer {
 
     private final SymbolsTable symbolsTable;
+    private final ArrayList<Token> declaredTokens = new ArrayList<>();
+
     private Token currentToken;
     private int currentTokenIndex = 0;
     private String currentType;
-    private final ArrayList<Token> declaredTokens;
 
     public SemanticAnalyzer(SymbolsTable symbolsTable) {
         this.symbolsTable = symbolsTable;
-        this.currentToken = symbolsTable.currentToken(this.currentTokenIndex);
-        this.declaredTokens = new ArrayList<>();
-    }
-
-    private void nextToken() {
-        this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
-    }
-
-    private void previousToken() {
-        this.currentToken = this.symbolsTable.currentToken(--this.currentTokenIndex);
-    }
-
-    private void expectAssignment(Token token) throws CompilerException {
-        if (!this.currentToken.getType().equalsIgnoreCase(token.getType())) {
-            System.out.println("CurrentToken" + this.currentToken + " is not of type " + this.currentToken.getType());
-            ErrorHandler.semanticErrorAssignment(this.currentToken, token);
-        }
+        this.currentToken = symbolsTable.currentToken(currentTokenIndex);
     }
 
     public void analyze() throws CompilerException {
         try {
-            this.checkDeclarations();
-            this.setSymbolsTableTypes();
-            this.checkAssignments();
+            checkDeclarations();
+            setSymbolsTableTypes();
+            checkAssignments();
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
     }
 
-    void checkDeclarations() throws CompilerException {
-        if (isPrimitiveType() || this.currentToken.getName().equals("final")) {
-            this.currentType = this.currentToken.getName();
-            this.nextToken();
-            Token declaredToken = this.currentToken; // variavel declarada
-            declaredToken.setType(this.currentType);
-            this.declaredTokens.add(declaredToken);
-            this.nextToken();
-            if (this.currentToken.getName().equals("=")) {
-                this.nextToken();
-                if (this.currentType.equals("final")) {
-                    this.currentType = this.currentToken.getType();
-                    declaredToken.setType(this.currentToken.getType());
+    private void nextToken() {
+        currentToken = symbolsTable.currentToken(++currentTokenIndex);
+    }
+
+    private void previousToken() {
+        currentToken = symbolsTable.currentToken(--currentTokenIndex);
+    }
+
+    private boolean isPrimitiveType() {
+        return switch (currentToken.getName().toLowerCase()) {
+            case "int", "string", "boolean", "byte" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isConstOrId() {
+        return currentToken.getClassification().equalsIgnoreCase("CONST")
+                || currentToken.getClassification().equalsIgnoreCase("ID");
+    }
+
+    private boolean isDeclared() {
+        return declaredTokens.stream().anyMatch(t -> t.getName().equals(currentToken.getName()));
+    }
+
+    private boolean isLogicalOperator(String op) {
+        return switch (op) {
+            case "==", "<", "<=", ">", ">=", "<>", "and", "or", "not" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isArithmeticOperator(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isLogicalOp() {
+        return isLogicalOperator(currentToken.getName());
+    }
+
+    private boolean isArithmeticOp() {
+        return isArithmeticOperator(currentToken.getName());
+    }
+
+    private void expectAssignment(Token expected) throws CompilerException {
+        if (!currentToken.getType().equalsIgnoreCase(expected.getType())) {
+            ErrorHandler.semanticErrorAssignment(currentToken, expected);
+        }
+    }
+
+    private void checkDeclarations() throws CompilerException {
+        if (isPrimitiveType() || currentToken.getName().equals("final")) {
+            currentType = currentToken.getName();
+            nextToken();
+
+            Token declaredToken = currentToken;
+            declaredToken.setType(currentType);
+            declaredTokens.add(declaredToken);
+            nextToken();
+
+            if (currentToken.getName().equals("=")) {
+                nextToken();
+
+                if (currentType.equals("final")) {
+                    currentType = currentToken.getType();
+                    declaredToken.setType(currentToken.getType());
                 }
-                this.expectAssignment(declaredToken);
-                this.nextToken();
+
+                expectAssignment(declaredToken);
+                nextToken();
             }
-            this.nextToken();
-            this.checkDeclarations();
+
+            nextToken();
+            checkDeclarations();
         }
     }
 
-    void checkAssignments() throws CompilerException {
-        this.nextToken();
-        if (this.currentToken.getClassification().equals("ID")) {
-            if (!this.isDeclared()) {
-                ErrorHandler.semanticErrorNotDeclared(this.currentToken);
+    private void checkAssignments() throws CompilerException {
+        nextToken();
+
+        if (currentToken.getClassification().equals("ID")) {
+            if (!isDeclared()) {
+                ErrorHandler.semanticErrorNotDeclared(currentToken);
             }
-            this.checkAssignment();
+            checkAssignment();
         }
-        if (this.currentToken.getName().equals("while") || this.currentToken.getName().equals("if")) {
-            this.currentType = "boolean";
-            this.checkBooleanExpressionAfterIfOrWhile();
+
+        if (currentToken.getName().equals("while") || currentToken.getName().equals("if")) {
+            currentType = "boolean";
+            checkBooleanExpressionAfterIfOrWhile();
         }
-        if (this.currentTokenIndex < this.symbolsTable.getSize() - 1) {
-            this.checkAssignments();
+
+        if (currentTokenIndex < symbolsTable.getSize() - 1) {
+            checkAssignments();
         }
     }
 
-    void checkAssignment() throws CompilerException {
-        for (Token token : this.declaredTokens) {
-            if (!token.getName().equals(this.currentToken.getName())) continue;
+    private void checkAssignment() throws CompilerException {
+        for (Token declared : declaredTokens) {
+            if (!declared.getName().equals(currentToken.getName())) continue;
 
-            this.currentType = token.getType();
-            this.nextToken();
+            currentType = declared.getType();
+            nextToken();
 
-            if (this.currentToken.getName().equals("=")) {
-                this.nextToken();
-                if (this.isNotExpression()) {
-                    this.expectAssignment(token);
-                    this.nextToken();
+            if (currentToken.getName().equals("=")) {
+                nextToken();
+
+                if (isSimpleAssignment()) {
+                    expectAssignment(declared);
+                    nextToken();
                 } else {
-                    this.verifyExpression();
+                    verifyExpression();
                 }
-            } else if (this.identifyLogicalOperator()) {
-                this.nextToken();
-                if (!this.currentToken.getType().equalsIgnoreCase(this.currentType)) {
-                    ErrorHandler.semanticErrorBadComparation(token, currentType);
+
+            } else if (isLogicalOp()) {
+                nextToken();
+                if (!currentToken.getType().equalsIgnoreCase(currentType)) {
+                    ErrorHandler.semanticErrorBadComparation(declared, currentType);
                 }
-                this.nextToken();
-            } else if (!currentType.equalsIgnoreCase("boolean") && this.currentToken.getName().equals("begin")) {
-                ErrorHandler.semanticErrorBadComparation(token, "boolean");
-                this.nextToken();
+                nextToken();
+            } else if (!currentType.equalsIgnoreCase("boolean") && currentToken.getName().equals("begin")) {
+                ErrorHandler.semanticErrorBadComparation(declared, "boolean");
+                nextToken();
             }
         }
     }
 
-    void verifyExpression() throws CompilerException {
-        String expressionType = evaluateExpressionType();
+    private boolean isSimpleAssignment() {
+        nextToken();
+        boolean isEnd = currentToken.getName().equals(";");
+        previousToken();
+        return isEnd;
+    }
 
-        if (!expressionType.equalsIgnoreCase(this.currentType)) {
-            ErrorHandler.semanticErrorInvalidExpression(this.currentType, expressionType, this.currentToken);
+    private void verifyExpression() throws CompilerException {
+        String type = evaluateExpressionType();
+
+        if (!type.equalsIgnoreCase(currentType)) {
+            ErrorHandler.semanticErrorInvalidExpression(currentType, type, currentToken);
         }
     }
 
-    String evaluateExpressionType() throws CompilerException {
-        String leftType = null;
+    private String evaluateExpressionType() throws CompilerException {
+        String leftType = "";
 
-        if (this.currentToken.getName().equals("(")) {
-            this.nextToken();
-            leftType = evaluateExpressionType();  // recursivo
-            if (!this.currentToken.getName().equals(")")) {
-                throw new CompilerException("Esperado ')' após expressão");
-            }
-            this.nextToken();
-        } else if (this.isConstOrId()) {
-            leftType = this.currentToken.getType();
-            this.nextToken();
+        if (currentToken.getName().equals("(")) {
+            nextToken();
+            leftType = evaluateExpressionType();
+
+            nextToken();
+        } else if (isConstOrId()) {
+            leftType = currentToken.getType();
+            nextToken();
         } else {
-            throw new CompilerException("Expressão inválida com token: " + currentToken.getName());
+            ErrorHandler.semanticErrorInvalidToken(this.currentToken);
         }
 
-        while (!this.currentToken.getName().equals(";")
-                && !this.currentToken.getName().equals(")")
-                && !this.currentToken.getName().equals(",")
-                && (this.identifyArithmeticOperator() || this.identifyLogicalOperator())) {
+        while (!isEndOfExpression()) {
+            String op = currentToken.getName();
+            boolean arithmetic = isArithmeticOperator(op);
+            boolean logical = isLogicalOperator(op);
 
-            String operator = this.currentToken.getName(); // Salva o operador antes
-            boolean isArithmetic = isArithmeticOperator(operator);
-            boolean isLogical = isLogicalOperator(operator);
+            nextToken();
+            String rightType = evaluateExpressionType();
 
-            this.nextToken(); // Avança para o operando
-
-            String rightType = evaluateExpressionType(); // Avalia recursivamente
-
-            if (isArithmetic) {
+            if (arithmetic) {
                 if (!leftType.equalsIgnoreCase("int") || !rightType.equalsIgnoreCase("int")) {
-                    ErrorHandler.semanticErrorInvalidExpression("int", rightType, this.currentToken);
+                    ErrorHandler.semanticErrorInvalidExpression("int", rightType, currentToken);
                 }
                 leftType = "int";
-            } else if (isLogical) {
+            } else if (logical) {
                 if (!leftType.equalsIgnoreCase("int") || !rightType.equalsIgnoreCase("int")) {
-                    ErrorHandler.semanticErrorInvalidExpression("boolean", rightType, this.currentToken);
+                    ErrorHandler.semanticErrorInvalidExpression("boolean", rightType, currentToken);
                 }
                 leftType = "boolean";
                 break;
@@ -168,111 +215,80 @@ public class SemanticAnalyzer {
         return leftType;
     }
 
-    void checkBooleanExpressionAfterIfOrWhile() throws CompilerException {
-        this.nextToken();
-        String expressionType = parseExpressionUntil("begin");
-        if (!expressionType.equalsIgnoreCase("boolean")) {
-            ErrorHandler.semanticErrorInvalidExpression("boolean", expressionType, this.currentToken);
+    private boolean isEndOfExpression() {
+        return currentToken.getName().equals(";")
+                || currentToken.getName().equals(")")
+                || currentToken.getName().equals(",")
+                || (!isArithmeticOp() && !isLogicalOp());
+    }
+
+    private void checkBooleanExpressionAfterIfOrWhile() throws CompilerException {
+        nextToken();
+        String exprType = parseExpressionUntil("begin");
+        if (!exprType.equalsIgnoreCase("boolean")) {
+            ErrorHandler.semanticErrorInvalidExpression("boolean", exprType, currentToken);
         }
     }
 
-    String parseExpressionUntil(String stopToken) throws CompilerException {
-        String expressionType = null;
+    private String parseExpressionUntil(String stopToken) throws CompilerException {
+        String exprType = null;
 
         if (isConstOrId()) {
-            if (this.currentToken.getClassification().equals("ID") && !isDeclared()) {
-                ErrorHandler.semanticErrorNotDeclared(this.currentToken);
+            if (currentToken.getClassification().equals("ID") && !isDeclared()) {
+                ErrorHandler.semanticErrorNotDeclared(currentToken);
             }
 
-            for (Token token : this.declaredTokens) {
-                if (!token.getName().equals(this.currentToken.getName())) continue;
-                expressionType = token.getType().toLowerCase();
-            }
+            exprType = declaredTokens.stream()
+                    .filter(t -> t.getName().equals(currentToken.getName()))
+                    .map(t -> t.getType().toLowerCase())
+                    .findFirst()
+                    .orElse(currentToken.getType());
 
-            this.nextToken();
+            nextToken();
         } else {
-            throw new CompilerException("Expressão inválida após if/while: " + this.currentToken.getName());
+            ErrorHandler.semanticErrorInvalidExpressionAfterControl(this.currentToken);
         }
 
-        while (!this.currentToken.getName().equalsIgnoreCase(stopToken)) {
-            if (identifyLogicalOperator() || identifyArithmeticOperator()) {
-                String operator = this.currentToken.getName(); // salva operador antes de avançar
-                boolean isLogical = isLogicalOperator(operator);
-                boolean isArithmetic = isArithmeticOperator(operator);
+        while (!currentToken.getName().equalsIgnoreCase(stopToken)) {
+            if (!isLogicalOp() && !isArithmeticOp()) break;
 
-                this.nextToken();
+            String operator = currentToken.getName();
+            boolean isLogical = isLogicalOperator(operator);
+            boolean isArithmetic = isArithmeticOperator(operator);
 
-                if (!isConstOrId()) {
-                    throw new CompilerException("Expressão inválida: esperado operando após " + operator);
-                }
+            nextToken();
 
-                if (this.currentToken.getClassification().equals("ID") && !isDeclared()) {
-                    ErrorHandler.semanticErrorNotDeclared(this.currentToken);
-                }
-
-                String rightType = this.currentToken.getType();
-
-                if (isLogical) {
-                    if (!(expressionType.equalsIgnoreCase("int") && rightType.equalsIgnoreCase("int")) &&
-                            !(expressionType.equalsIgnoreCase("boolean") && rightType.equalsIgnoreCase("boolean"))) {
-                        ErrorHandler.semanticErrorInvalidExpression(expressionType, rightType, this.currentToken);
-                    }
-                    expressionType = "boolean";
-                } else if (isArithmetic) {
-                    if (!expressionType.equalsIgnoreCase("int") || !rightType.equalsIgnoreCase("int")) {
-                        ErrorHandler.semanticErrorInvalidExpression("int", rightType, this.currentToken);
-                    }
-                    expressionType = "int";
-                }
-
-                this.nextToken();
-            } else {
-                break;
+            if (!isConstOrId()) {
+                ErrorHandler.semanticErrorExpectedOperandAfter(operator, currentToken);
             }
+
+            if (currentToken.getClassification().equals("ID") && !isDeclared()) {
+                ErrorHandler.semanticErrorNotDeclared(currentToken);
+            }
+
+            String rightType = currentToken.getType();
+
+            if (isLogical) {
+                if (!(exprType.equalsIgnoreCase("int") && rightType.equalsIgnoreCase("int")) &&
+                        !(exprType.equalsIgnoreCase("boolean") && rightType.equalsIgnoreCase("boolean"))) {
+                    ErrorHandler.semanticErrorInvalidExpression(exprType, rightType, currentToken);
+                }
+                exprType = "boolean";
+            } else if (isArithmetic) {
+                if (!exprType.equalsIgnoreCase("int") || !rightType.equalsIgnoreCase("int")) {
+                    ErrorHandler.semanticErrorInvalidExpression("int", rightType, currentToken);
+                }
+                exprType = "int";
+            }
+
+            nextToken();
         }
 
-        return expressionType;
+        return exprType;
     }
 
-    boolean isPrimitiveType() {
-        return (currentToken.getName().equalsIgnoreCase("int")
-                || currentToken.getName().equalsIgnoreCase("string")
-                || currentToken.getName().equalsIgnoreCase("boolean")
-                || currentToken.getName().equalsIgnoreCase("byte"));
-    }
-
-    boolean isDeclared() {
-        for (Token token : this.declaredTokens) {
-            if (token.getName().equals(this.currentToken.getName())) return true;
-        }
-        return false;
-    }
-
-    boolean identifyLogicalOperator() {
-        return isLogicalOperator(this.currentToken.getName());
-    }
-
-    boolean identifyArithmeticOperator() {
-        return isArithmeticOperator(this.currentToken.getName());
-    }
-
-    boolean isLogicalOperator(String op) {
-        return (op.equals("==") || op.equals("<") || op.equals("<=") || op.equals(">")
-                || op.equals(">=") || op.equals("<>") || op.equals("and")
-                || op.equals("or") || op.equals("not"));
-    }
-
-    boolean isArithmeticOperator(String op) {
-        return (op.equals("+") || op.equals("-") || op.equals("*") || op.equals("/"));
-    }
-
-    boolean isConstOrId() {
-        return (this.currentToken.getClassification().equalsIgnoreCase("CONST")
-                || this.currentToken.getClassification().equalsIgnoreCase("ID"));
-    }
-
-    void setSymbolsTableTypes() {
-        for (Token declared : this.declaredTokens) {
+    private void setSymbolsTableTypes() {
+        for (Token declared : declaredTokens) {
             for (int i = 0; i < symbolsTable.getSize(); i++) {
                 Token symbol = symbolsTable.currentToken(i);
                 if (declared.getName().equals(symbol.getName())) {
@@ -280,15 +296,5 @@ public class SemanticAnalyzer {
                 }
             }
         }
-    }
-
-    boolean isNotExpression() {
-        this.nextToken();
-        if (this.currentToken.getName().equals(";")) {
-            this.previousToken();
-            return true;
-        }
-        this.previousToken();
-        return false;
     }
 }
