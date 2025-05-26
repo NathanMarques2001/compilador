@@ -18,7 +18,6 @@ public class AssemblyGenerator {
     private final StringBuilder headerSection = new StringBuilder();
     private StringBuilder dataSection = new StringBuilder();
     private StringBuilder codeSection = new StringBuilder();
-    private ArrayList<String> strings = new ArrayList<>();
     private int stringCount = 1;
 
     public AssemblyGenerator(SymbolsTable symbolsTable, String fileName) {
@@ -62,11 +61,13 @@ public class AssemblyGenerator {
     private void generateAssemblyCode() {
         StringBuilder assemblyCode = new StringBuilder();
 
-        assemblyCode.append(generateHeader());
-        assemblyCode.append(generateDataSection());
-        assemblyCode.append(generateCodeSection());
+        generateHeader();
+        generateDataSection();
+        generateCodeSection();
 
-        //System.out.println(assemblyCode);
+        assemblyCode.append(headerSection);
+        assemblyCode.append(dataSection);
+        assemblyCode.append(codeSection);
 
         writeAssemblyCode(assemblyCode.toString());
     }
@@ -183,25 +184,38 @@ public class AssemblyGenerator {
         this.codeSection.append(".code\n").append("start:\n");
         this.beginGeneration();
 
-        System.out.println(this.dataSection.toString());
-
         return this.codeSection.append("invoke ExitProcess, 0\n").append("end start\n").toString();
     }
 
     private void beginGeneration() {
         if (this.currentToken.getName().equalsIgnoreCase("begin")) {
             this.nextToken();
-            this.identifyWrite();
+            this.identifyCommand();
         }
     }
 
-    private void identifyWrite() {
-        if (this.currentToken.getName().equalsIgnoreCase("write") || this.currentToken.getName().equalsIgnoreCase("writeln")) {
-            String breakLine = this.currentToken.getName().equalsIgnoreCase("writeln") ? ", 13, 10, 0\n" : ", 0\n";
-            this.nextToken(); // ,
-            this.writeGeneration(breakLine);
-            this.nextToken(); // ;
+    private void identifyCommand() {
+        if (this.currentToken.getName().equalsIgnoreCase("write") ||
+                this.currentToken.getName().equalsIgnoreCase("writeln")) {
+            this.identifyWrite();
+            this.identifyCommand();
+        } else if (this.currentToken.getName().equalsIgnoreCase("readln")) {
+            this.identifyRead();
+            this.identifyCommand();
+        } else if (this.currentToken.getName().equalsIgnoreCase("end")) {
+            return;
+        } else {
+            this.nextToken();
+            this.identifyCommand();
         }
+    }
+
+
+    private void identifyWrite() {
+        String breakLine = this.currentToken.getName().equalsIgnoreCase("writeln") ? ", 13, 10, 0\n" : ", 0\n";
+        this.nextToken(); // ,
+        this.writeGeneration(breakLine);
+        this.nextToken(); // ;
     }
 
     private void writeGeneration(String breakLine) {
@@ -219,7 +233,7 @@ public class AssemblyGenerator {
                 formatStr.append(literal);
             }
 
-            this.nextToken(); // , ou ;
+            this.nextToken();
             if (this.currentToken.getName().equals(",")) {
                 continue;
             }
@@ -228,7 +242,7 @@ public class AssemblyGenerator {
         formatStr.append("\"");
 
         String dataLabel = "str" + stringCount++;
-        strings.add(dataLabel);
+
         dataSection.append(dataLabel).append(" db ").append(formatStr).append(breakLine);
 
         codeSection.append("invoke crt_printf, addr ").append(dataLabel);
@@ -236,6 +250,17 @@ public class AssemblyGenerator {
             codeSection.append(", ").append(arg);
         }
         codeSection.append("\n");
+    }
+
+    private void identifyRead() {
+        this.nextToken(); // ,
+        this.nextToken(); // valor
+        if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
+            String variable = this.currentToken.getName();
+            codeSection.append("invoke crt_gets, addr ").append(variable).append("\n");
+        }
+        this.nextToken(); // ;
+        this.nextToken(); // proximo comando
     }
 
     public void convert() {

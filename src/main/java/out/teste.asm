@@ -17,8 +17,12 @@ nome db 256 dup(0)
 naoTerminou db 0
 MAXITER equ 10
 hexa dw 10h
+str1 db "Digite seu nome: ", 0
+str2 db "Ola' %s", 13, 10, 0
 .code
 start:
 invoke crt_printf, addr str1
+invoke crt_gets, addr nome
+invoke crt_printf, addr str2, addr nome
 invoke ExitProcess, 0
 end start
