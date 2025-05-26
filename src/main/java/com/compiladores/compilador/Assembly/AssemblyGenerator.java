@@ -183,6 +183,8 @@ public class AssemblyGenerator {
         this.codeSection.append(".code\n").append("start:\n");
         this.beginGeneration();
 
+        System.out.println(this.dataSection.toString());
+
         return this.codeSection.append("invoke ExitProcess, 0\n").append("end start\n").toString();
     }
 
@@ -195,47 +197,50 @@ public class AssemblyGenerator {
 
     private void identifyWrite() {
         if (this.currentToken.getName().equalsIgnoreCase("write") || this.currentToken.getName().equalsIgnoreCase("writeln")) {
-            String breakLine = this.currentToken.getName().equalsIgnoreCase("writeln") ? ", 13, 10, 0" : ", 0";
-
+            String breakLine = this.currentToken.getName().equalsIgnoreCase("writeln") ? ", 13, 10, 0\n" : ", 0\n";
             this.nextToken(); // ,
-            this.writeGeneration();
-
-            StringBuilder strCode = new StringBuilder();
-            StringBuilder strData = new StringBuilder();
-
-            for (String str : this.strings) {
-                String dataName = str;
-                if (str.contains("\"")) {
-                    dataName = "str" + stringCount++;
-                }
-                strCode.append(", addr ").append(dataName);
-                strData.append(dataName).append(" ").append("db").append(" ").append(str).append(breakLine);
-            }
-            codeSection.append("invoke crt_printf").append(strCode);
-            dataSection.append(strData);
-
-            System.out.println(dataSection.toString());
-
-            this.nextToken();
+            this.writeGeneration(breakLine);
+            this.nextToken(); // ;
         }
     }
 
-    private void writeGeneration() {
-        if (!this.currentToken.getName().equalsIgnoreCase(";")) {
-            this.nextToken(); // valor
-            if(this.currentToken.getClassification().equalsIgnoreCase("ID")){
+    private void writeGeneration(String breakLine) {
+        StringBuilder formatStr = new StringBuilder("\"");
+        ArrayList<String> args = new ArrayList<>();
 
+        while (!this.currentToken.getName().equalsIgnoreCase(";")) {
+            this.nextToken();
+
+            if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
+                formatStr.append("%s");
+                args.add("addr " + this.currentToken.getName());
+            } else {
+                String literal = this.currentToken.getName().replace("\"", "");
+                formatStr.append(literal);
             }
-            strings.add(this.currentToken.getName());
+
             this.nextToken(); // , ou ;
-            this.writeGeneration();
+            if (this.currentToken.getName().equals(",")) {
+                continue;
+            }
         }
+
+        formatStr.append("\"");
+
+        String dataLabel = "str" + stringCount++;
+        strings.add(dataLabel);
+        dataSection.append(dataLabel).append(" db ").append(formatStr).append(breakLine);
+
+        codeSection.append("invoke crt_printf, addr ").append(dataLabel);
+        for (String arg : args) {
+            codeSection.append(", ").append(arg);
+        }
+        codeSection.append("\n");
     }
 
     public void convert() {
         createOutDirectory();
 
-        // Não precisa criar o arquivo antes, writeAssemblyCode vai criar / sobrescrever
         generateAssemblyCode();
     }
 }

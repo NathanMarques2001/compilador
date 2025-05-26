@@ -19,5 +19,6 @@ MAXITER equ 10
 hexa dw 10h
 .code
 start:
-invoke crt_printf, addr str1, addr nomeinvoke ExitProcess, 0
+invoke crt_printf, addr str1
+invoke ExitProcess, 0
 end start
