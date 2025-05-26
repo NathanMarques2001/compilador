@@ -18,8 +18,11 @@ public class AssemblyGenerator {
     private final StringBuilder headerSection = new StringBuilder();
     private StringBuilder dataSection = new StringBuilder();
     private StringBuilder codeSection = new StringBuilder();
+    private ArrayList<String> expressionValues = new ArrayList<>();
+    private ArrayList<String> expressionSymbols = new ArrayList<>();
     private int stringCount = 1;
     private int loopCounter = 1;
+    private int ifCounter = 1;
 
     public AssemblyGenerator(SymbolsTable symbolsTable, String fileName) {
         this.symbolsTable = symbolsTable;
@@ -162,6 +165,7 @@ public class AssemblyGenerator {
 
     private String generateCodeSection() {
         this.codeSection.append(".code\n").append("start:\n");
+        this.resetRegister();
         this.beginGeneration();
         return this.codeSection.append("invoke ExitProcess, 0\n").append("end start\n").toString();
     }
@@ -183,6 +187,12 @@ public class AssemblyGenerator {
             this.identifyCommand();
         } else if (this.currentToken.getName().equalsIgnoreCase("while")) {
             this.identifyWhile();
+            this.identifyCommand();
+        } else if (this.currentToken.getName().equalsIgnoreCase("if")) {
+            this.identifyIf();
+            this.identifyCommand();
+        } else if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
+            this.identifyAssignment();
             this.identifyCommand();
         } else if (this.currentToken.getName().equalsIgnoreCase("end")) {
             return;
@@ -317,6 +327,137 @@ public class AssemblyGenerator {
         if (this.currentToken.getName().equalsIgnoreCase("end")) {
             this.nextToken();
         }
+    }
+
+    private void identifyIf() {
+        String ifLabel = "_if" + ifCounter;
+        String elseLabel = "_else" + ifCounter;
+        String endIfLabel = "_fimIf" + ifCounter;
+        ifCounter++;
+
+        this.nextToken(); // variável ou valor esquerdo
+        String left = this.currentToken.getName();
+
+        this.nextToken(); // operador (==, !=, <, >, etc.)
+        String operator = this.currentToken.getName();
+
+        this.nextToken(); // valor direito
+        String right = this.currentToken.getName();
+
+        codeSection.append("mov al, ").append(left).append("\n");
+        codeSection.append("mov bl, ").append(right).append("\n");
+        codeSection.append("cmp al, bl\n");
+
+        switch (operator) {
+            case "==":
+                codeSection.append("jne ").append(elseLabel).append("\n");
+                break;
+            case "!=":
+                codeSection.append("je ").append(elseLabel).append("\n");
+                break;
+            case "<":
+                codeSection.append("jge ").append(elseLabel).append("\n");
+                break;
+            case ">":
+                codeSection.append("jle ").append(elseLabel).append("\n");
+                break;
+            case "<=":
+                codeSection.append("jg ").append(elseLabel).append("\n");
+                break;
+            case ">=":
+                codeSection.append("jl ").append(elseLabel).append("\n");
+                break;
+        }
+
+        this.nextToken(); // begin
+        if (!this.currentToken.getName().equalsIgnoreCase("begin")) {
+            throw new RuntimeException("Esperado 'begin' após condição do if");
+        }
+
+        this.nextToken(); // comandos dentro do if
+        this.identifyCommand();
+        codeSection.append("jmp ").append(endIfLabel).append("\n");
+
+        // ELSE
+        if (this.currentToken.getName().equalsIgnoreCase("else")) {
+            codeSection.append(elseLabel).append(":\n");
+            this.nextToken(); // begin
+            this.nextToken(); // comandos dentro do else
+            this.identifyCommand();
+        } else {
+            // Sem else, só define o label para pular
+            codeSection.append(elseLabel).append(":\n");
+        }
+
+        codeSection.append(endIfLabel).append(":\n");
+
+        if (this.currentToken.getName().equalsIgnoreCase("end")) {
+            this.nextToken();
+        }
+    }
+
+    private void identifyAssignment() {
+        String valorMemoria = this.currentToken.getName();
+        this.nextToken(); // =
+
+        this.getExpressionSymbols();
+
+        if (!this.expressionSymbols.isEmpty()) {
+            this.buildExpression();
+            codeSection.append("mov ").append(valorMemoria).append(", eax\n");
+        } else {
+            codeSection.append("mov ").append(valorMemoria).append(this.expressionValues.getFirst()).append("\n");
+            expressionValues.clear();
+        }
+
+        this.nextToken();
+    }
+
+    private void getExpressionSymbols() {
+        this.nextToken();
+        if (!this.currentToken.getName().equalsIgnoreCase(";")) {
+            if (this.arithmeticSymbols()) {
+                this.expressionSymbols.add(this.currentToken.getName());
+            } else {
+                this.expressionValues.add(this.currentToken.getName());
+            }
+            this.getExpressionSymbols();
+        }
+    }
+
+    private boolean arithmeticSymbols() {
+        return (this.currentToken.getName().equals("+") ||
+                this.currentToken.getName().equals("-") ||
+                this.currentToken.getName().equals("*") ||
+                this.currentToken.getName().equals("/"));
+    }
+
+    private void buildExpression() {
+        String command = switch (this.expressionSymbols.getFirst()) {
+            case "+" -> "add";
+            case "-" -> "sub";
+            case "*" -> "imul";
+            default -> "idiv";
+        };
+
+        if (command.equals("add") || command.equals("sub")) {
+            codeSection.append("mov eax, ").append(expressionValues.getFirst()).append("\n");
+            this.expressionValues.removeFirst();
+            codeSection.append(command).append(" eax, ").append(expressionValues.getFirst()).append("\n");
+            this.expressionValues.removeFirst();
+            this.expressionSymbols.removeFirst();
+        }
+
+        if (!this.expressionSymbols.isEmpty()) {
+            this.buildExpression();
+        }
+    }
+
+    private void resetRegister() {
+        codeSection.append("mov eax, 0");
+        codeSection.append("mov ebx, 0");
+        codeSection.append("mov ecx, 0");
+        codeSection.append("mov edx, 0");
     }
 
     public void convert() {
