@@ -6,7 +6,7 @@ final MAXITER=10;
 byte hexa=0h0010;
 { Bloco Principal }
 begin
-  write,"Digite seu nome: ";
+  write,"Digite seu nome: ",nome;
   readln,nome;
   naoTerminou=true;
   n=0;

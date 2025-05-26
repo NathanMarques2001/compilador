@@ -1,5 +1,6 @@
 package com.compiladores.compilador;
 
+import com.compiladores.compilador.Assembly.AssemblyGenerator;
 import com.compiladores.compilador.Exceptions.CompilerException;
 import com.compiladores.compilador.Grammar.SyntaticAnalyzer;
 import com.compiladores.compilador.Lexical.LexicalAnalyzer;
@@ -20,6 +21,8 @@ public class Main {
             // Obtém o caminho do arquivo a partir dos argumentos
             String filePath = "C:\\Users\\natha\\dev\\compilador\\src\\main\\java\\com\\compiladores\\compilador\\LC_Codes\\teste.lc";
             System.out.println("Lendo o arquivo: " + filePath);
+            String fileName = filePath.substring(filePath.lastIndexOf("\\") + 1);
+            fileName = fileName.substring(0, fileName.lastIndexOf("."));
 
             // Instancia os componentes do compilador
             ReadLCCode lcReader = new ReadLCCode();
@@ -34,6 +37,9 @@ public class Main {
 
             // Executa a análise semântica
             runSemanticAnalysis(table);
+
+            // Executa a geração de código assembly
+            runAssemblyGeneration(table, fileName);
 
         } catch (CompilerException e) {
             System.err.println("Erro no compilador: " + e.getMessage());
@@ -61,5 +67,12 @@ public class Main {
         System.out.println("Iniciando análise semântica...");
         semanticAnalyzer.analyze();
         System.out.println("Análise semântica concluída!\n========================================");
+    }
+
+    private static void runAssemblyGeneration(SymbolsTable table, String fileName) throws CompilerException {
+        AssemblyGenerator assemblyGenerator = new AssemblyGenerator(table, fileName);
+        System.out.println("Iniciando geração de código assembly...");
+        assemblyGenerator.convert();
+        System.out.println("Geração de código assembly concluída!");
     }
 }
