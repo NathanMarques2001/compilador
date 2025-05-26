@@ -23,6 +23,11 @@ str2 db "Ola' %s", 13, 10, 0
 start:
 invoke crt_printf, addr str1
 invoke crt_gets, addr nome
+_loop1:
+cmp naoTerminou, 0
+je _fimLoop1
 invoke crt_printf, addr str2, addr nome
+jmp _loop1
+_fimLoop1:
 invoke ExitProcess, 0
 end start

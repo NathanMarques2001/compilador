@@ -19,6 +19,7 @@ public class AssemblyGenerator {
     private StringBuilder dataSection = new StringBuilder();
     private StringBuilder codeSection = new StringBuilder();
     private int stringCount = 1;
+    private int loopCounter = 1;
 
     public AssemblyGenerator(SymbolsTable symbolsTable, String fileName) {
         this.symbolsTable = symbolsTable;
@@ -49,8 +50,8 @@ public class AssemblyGenerator {
             return;
         }
 
-        File asmFile = new File(outDir, fileName);  // usa o fileName passado no construtor
-        try (FileWriter writer = new FileWriter(asmFile)) { // FileWriter padrão sobrescreve o arquivo
+        File asmFile = new File(outDir, fileName);
+        try (FileWriter writer = new FileWriter(asmFile)) {
             writer.write(assemblyCode);
             System.out.println("Código Assembly escrito com sucesso no arquivo '" + fileName + "'.");
         } catch (IOException e) {
@@ -60,7 +61,6 @@ public class AssemblyGenerator {
 
     private void generateAssemblyCode() {
         StringBuilder assemblyCode = new StringBuilder();
-
         generateHeader();
         generateDataSection();
         generateCodeSection();
@@ -89,9 +89,7 @@ public class AssemblyGenerator {
 
     private String generateDataSection() {
         this.dataSection.append(".data\n");
-
         this.identifyDeclarations();
-
         return dataSection.toString();
     }
 
@@ -103,42 +101,29 @@ public class AssemblyGenerator {
 
     private void identifyDeclaration() {
         String dataType = this.primitiveTypeMASM();
-
         this.nextToken();
         String dataName = this.currentToken.getName();
-
         String dataValue = "";
 
         this.nextToken();
         if (this.currentToken.getName().equals("=")) {
             this.nextToken();
             dataValue = this.currentToken.getName();
-
-            // byte
             if (dataType.equals("dw")) {
                 dataValue = this.formatByteType() + "h";
             }
-
             this.nextToken();
         }
 
         if (dataValue.isEmpty()) {
-            // int, boolean
-            if (dataType.equals("dd") || dataType.equals("db")) {
-                dataValue = "0";
-                // byte
-            } else if (dataType.equals("dw")) {
-                dataValue = "0h";
-                // string
-            } else {
-                dataValue = "dup(0)";
-            }
+            dataValue = switch (dataType) {
+                case "dd", "db" -> "0";
+                case "dw" -> "0h";
+                default -> "dup(0)";
+            };
         }
 
-        // escreve no string builder
         this.dataSection.append(dataName).append(" ").append(dataType).append(" ").append(dataValue).append("\n");
-
-        // vai para a proxima linha
         this.nextToken();
         this.identifyDeclarations();
     }
@@ -149,7 +134,7 @@ public class AssemblyGenerator {
             case "string" -> "db 256";
             case "boolean" -> "db";
             case "byte" -> "dw";
-            default -> "equ"; // final
+            default -> "equ";
         };
     }
 
@@ -164,26 +149,20 @@ public class AssemblyGenerator {
         StringBuilder str = new StringBuilder();
         boolean leftZero = true;
         String tokenName = this.currentToken.getName();
-
-        // comeca em 2 pra desconsiderar o 0h do hexa
         if (tokenName.length() > 2) {
             for (int i = 2; i < tokenName.length(); i++) {
                 char c = tokenName.charAt(i);
-
                 if (c != '0') leftZero = false;
-
                 if (!leftZero) str.append(c);
             }
         }
         if (str.isEmpty()) str.append("0");
-
         return str.toString();
     }
 
     private String generateCodeSection() {
         this.codeSection.append(".code\n").append("start:\n");
         this.beginGeneration();
-
         return this.codeSection.append("invoke ExitProcess, 0\n").append("end start\n").toString();
     }
 
@@ -202,6 +181,9 @@ public class AssemblyGenerator {
         } else if (this.currentToken.getName().equalsIgnoreCase("readln")) {
             this.identifyRead();
             this.identifyCommand();
+        } else if (this.currentToken.getName().equalsIgnoreCase("while")) {
+            this.identifyWhile();
+            this.identifyCommand();
         } else if (this.currentToken.getName().equalsIgnoreCase("end")) {
             return;
         } else {
@@ -209,7 +191,6 @@ public class AssemblyGenerator {
             this.identifyCommand();
         }
     }
-
 
     private void identifyWrite() {
         String breakLine = this.currentToken.getName().equalsIgnoreCase("writeln") ? ", 13, 10, 0\n" : ", 0\n";
@@ -260,12 +241,86 @@ public class AssemblyGenerator {
             codeSection.append("invoke crt_gets, addr ").append(variable).append("\n");
         }
         this.nextToken(); // ;
-        this.nextToken(); // proximo comando
+        this.nextToken(); // próximo comando
+    }
+
+    private void identifyWhile() {
+        String loopLabel = "_loop" + loopCounter;
+        String loopEndLabel = "_fimLoop" + loopCounter;
+        loopCounter++;
+
+        codeSection.append(loopLabel).append(":\n");
+
+        this.nextToken(); // pega a primeira parte da condição (ex: "cond" ou "x")
+        String leftOperand = currentToken.getName();
+        this.nextToken(); // verifica se é operador ou já é 'begin'
+
+        // Caso 1: while cond (variável de controle booleana)
+        if (currentToken.getName().equalsIgnoreCase("begin")) {
+            codeSection.append("cmp ").append(leftOperand).append(", 0\n");
+            codeSection.append("je ").append(loopEndLabel).append("\n");
+
+            this.nextToken(); // entra no bloco
+            this.identifyCommand();
+            codeSection.append("jmp ").append(loopLabel).append("\n");
+            codeSection.append(loopEndLabel).append(":\n");
+
+            if (this.currentToken.getName().equalsIgnoreCase("end")) {
+                this.nextToken();
+            }
+            return;
+        }
+
+        // Caso 2: while com condição completa (x < 10)
+        String operator = currentToken.getName();
+        this.nextToken();
+        String rightOperand = currentToken.getName();
+
+        codeSection.append("mov al, ").append(leftOperand).append("\n");
+        codeSection.append("mov bl, ").append(rightOperand).append("\n");
+        codeSection.append("cmp al, bl\n");
+
+        switch (operator) {
+            case "==":
+                codeSection.append("jne ").append(loopEndLabel).append("\n");
+                break;
+            case "!=":
+                codeSection.append("je ").append(loopEndLabel).append("\n");
+                break;
+            case "<":
+                codeSection.append("jge ").append(loopEndLabel).append("\n");
+                break;
+            case ">":
+                codeSection.append("jle ").append(loopEndLabel).append("\n");
+                break;
+            case "<=":
+                codeSection.append("jg ").append(loopEndLabel).append("\n");
+                break;
+            case ">=":
+                codeSection.append("jl ").append(loopEndLabel).append("\n");
+                break;
+            default:
+                throw new RuntimeException("Operador lógico inválido no while: " + operator);
+        }
+
+        this.nextToken(); // deve ser 'begin'
+        if (!this.currentToken.getName().equalsIgnoreCase("begin")) {
+            throw new RuntimeException("Esperado 'begin' após condição do while");
+        }
+
+        this.nextToken(); // comandos internos
+        this.identifyCommand();
+
+        codeSection.append("jmp ").append(loopLabel).append("\n");
+        codeSection.append(loopEndLabel).append(":\n");
+
+        if (this.currentToken.getName().equalsIgnoreCase("end")) {
+            this.nextToken();
+        }
     }
 
     public void convert() {
         createOutDirectory();
-
         generateAssemblyCode();
     }
 }

@@ -19,7 +19,7 @@ public class Main {
 
         try {
             // Obtém o caminho do arquivo a partir dos argumentos
-            String filePath = "C:\\Users\\natha\\dev\\compilador\\src\\main\\java\\com\\compiladores\\compilador\\LC_Codes\\teste.lc";
+            String filePath = "C:\\Users\\nathan.brandao\\Documents\\dev\\compilador\\src\\main\\java\\com\\compiladores\\compilador\\LC_Codes\\teste.lc";
             System.out.println("Lendo o arquivo: " + filePath);
             String fileName = filePath.substring(filePath.lastIndexOf("\\") + 1);
             fileName = fileName.substring(0, fileName.lastIndexOf("."));
