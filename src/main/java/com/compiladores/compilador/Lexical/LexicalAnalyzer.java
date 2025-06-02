@@ -115,8 +115,8 @@ public class LexicalAnalyzer {
 
     private String trueOrFalse(String code) {
         if (code.equals("true")) {
-            return "0hFFFF";
+            return "Fh";
         }
-        return "0h0000";
+        return "0h";
     }
 }
