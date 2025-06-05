@@ -32,6 +32,18 @@ public class SymbolsTable {
         return reservedWords.contains(word);
     }
 
+    public String getSymbolType(String symbolName) {
+        for (int i = this.table.size() - 1; i >= 0; i--) {
+            Token token = this.table.get(i);
+            if (token.getName().equals(symbolName)) {
+                if (token.getType() != null) {
+                    return token.getType();
+                }
+            }
+        }
+        return null;
+    }
+
     public int getSize() {
         return this.table.size();
     }

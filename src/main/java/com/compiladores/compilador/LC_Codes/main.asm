@@ -45,11 +45,11 @@ end start
 ; --------------------------------------------------------------------------------------------
 ; byte  ->  db  ->  1 byte  ->  Usado para valores pequenos, caracteres, booleans
 ; --------------------------------------------------------------------------------------------
-; word  ->  dw  ->  2 bytes  ->  Útil para números pequenos e dados da API
+; word  ->  dw  ->  2 bytes  ->  Ãštil para nÃºmeros pequenos e dados da API
 ; --------------------------------------------------------------------------------------------
 ; double word  ->  dd  ->  4 bytes  ->  Usado para inteiros, ponteiros e handles
 ; --------------------------------------------------------------------------------------------
-; quad word  ->  dq  ->  8 bytes  ->  Para números maiores ou manipulação especial
+; quad word  ->  dq  ->  8 bytes  ->  Para nÃºmeros maiores ou manipulaÃ§Ã£o especial
 ; --------------------------------------------------------------------------------------------
-; tbyte  ->  dt  ->  10 bytes  ->  Usado para precisão estendida (ex: float de 80 bits em FPU)
+; tbyte  ->  dt  ->  10 bytes  ->  Usado para precisÃ£o estendida (ex: float de 80 bits em FPU)
 ; --------------------------------------------------------------------------------------------

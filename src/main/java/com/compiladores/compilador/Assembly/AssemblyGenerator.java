@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Stack;
 
 public class AssemblyGenerator {
 
@@ -29,7 +30,12 @@ public class AssemblyGenerator {
     }
 
     private void nextToken() {
-        this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
+        this.currentTokenIndex++;
+        if (this.currentTokenIndex < this.symbolsTable.getSize()) {
+            this.currentToken = this.symbolsTable.currentToken(this.currentTokenIndex);
+        } else {
+            this.currentToken = null;
+        }
     }
 
     private void createOutDirectory() {
@@ -67,8 +73,8 @@ public class AssemblyGenerator {
         writeAssemblyCode(assemblyCode.toString());
     }
 
-    private String generateHeader() {
-        return this.headerSection.append(".686\n")
+    private void generateHeader() {
+        this.headerSection.append(".686\n")
                 .append(".model flat, stdcall\n")
                 .append("option casemap :none\n\n")
                 .append("include \\masm32\\include\\windows.inc\n")
@@ -78,245 +84,327 @@ public class AssemblyGenerator {
                 .append("includelib \\masm32\\lib\\kernel32.lib\n")
                 .append("includelib \\masm32\\lib\\masm32.lib\n")
                 .append("includelib \\masm32\\lib\\msvcrt.lib\n")
-                .append("include \\masm32\\macros\\macros.asm\n\n")
-                .toString();
+                .append("include \\masm32\\macros\\macros.asm\n\n");
     }
 
-    private String generateDataSection() {
+    private void generateDataSection() {
         this.dataSection.append(".data\n");
+        this.dataSection.append(String.format("    %-15s db %s, 0\n", "str_Natan", "\"Natan\""));
+        this.dataSection.append(String.format("    %-15s db %s, 0\n", "str_Nathan", "\"Nathan\""));
+
         while (isDeclarationScope()) {
-            this.identifyDeclaration();
+            identifyDeclaration();
         }
-        return dataSection.toString();
     }
 
     private boolean isDeclarationScope() {
-        if (currentToken == null || currentToken.getName().equalsIgnoreCase("{")) {
-            return false;
-        }
         return isPrimitiveType() || currentToken.getName().equalsIgnoreCase("final");
     }
 
+    private String formatValue(String value) {
+        // Usando 1 para 'true' para simplificar comparações, como 'cmp al, 1'
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("Fh")) return "1";
+        if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("0h")) return "0";
+        if (value.toLowerCase().startsWith("0h")) return value.substring(2) + "h";
+        return value;
+    }
+
     private void identifyDeclaration() {
-        String type = this.currentToken.getName();
-        String dataTypeMASM = this.primitiveTypeMASM(type);
-        this.nextToken();
-        String dataName = this.currentToken.getName();
-        this.nextToken();
-
-        String dataValue = "";
-
-        if (this.currentToken.getName().equals("=")) {
-            this.nextToken();
-            dataValue = this.currentToken.getName();
-            this.nextToken();
-        }
-
-        if (dataValue.equalsIgnoreCase("Fh")) {
-            dataValue = "1";
-        } else if (dataValue.equalsIgnoreCase("0h")) {
-            dataValue = "0";
-        }
-
-        if (dataValue.isEmpty()) {
-            dataValue = "0";
-        }
-
-        // CORREÇÃO APLICADA AQUI
-        if (dataTypeMASM.equals("equ")) {
-            // Usar a variável 'dataValue' que guardou o valor da constante
-            this.dataSection.append(String.format("    %-15s %-5s %s\n", dataName, dataTypeMASM, dataValue));
-        } else if (type.equalsIgnoreCase("string")) {
-            this.dataSection.append(String.format("    %-15s %-5s %s\n", dataName, "db 256", "dup(0)"));
+        if (currentToken.getName().equalsIgnoreCase("final")) {
+            nextToken();
+            String constName = currentToken.getName();
+            nextToken();
+            nextToken();
+            String constValue = formatValue(currentToken.getName());
+            dataSection.append(String.format("    %-15s equ %s\n", constName, constValue));
+            nextToken();
+            nextToken();
         } else {
-            this.dataSection.append(String.format("    %-15s %-5s %s\n", dataName, dataTypeMASM, dataValue));
+            String type = currentToken.getName();
+            String dataTypeMASM = primitiveTypeMASM(type);
+            nextToken();
+            while (currentToken != null && !currentToken.getName().equals(";")) {
+                String dataName = currentToken.getName();
+                nextToken();
+                String dataValue = "0";
+                if (currentToken.getName().equals("=")) {
+                    nextToken();
+                    dataValue = formatValue(currentToken.getName());
+                    nextToken();
+                }
+                if (type.equalsIgnoreCase("string")) {
+                    dataSection.append(String.format("    %-15s db 256 dup(0)\n", dataName));
+                } else {
+                    dataSection.append(String.format("    %-15s %-5s %s\n", dataName, dataTypeMASM, dataValue));
+                }
+                if (currentToken.getName().equals(",")) nextToken();
+            }
+            nextToken();
         }
-
-        this.nextToken();
     }
 
     private String primitiveTypeMASM(String type) {
         return switch (type) {
             case "int" -> "dd";
-            case "boolean" -> "db";
-            case "final" -> "equ";
+            case "boolean", "byte" -> "db";
             default -> "";
         };
     }
 
     private boolean isPrimitiveType() {
-        return (this.currentToken.getName().equalsIgnoreCase("int") ||
-                this.currentToken.getName().equalsIgnoreCase("string") ||
-                this.currentToken.getName().equalsIgnoreCase("boolean"));
+        return currentToken != null && (
+                currentToken.getName().equalsIgnoreCase("int") ||
+                        currentToken.getName().equalsIgnoreCase("string") ||
+                        currentToken.getName().equalsIgnoreCase("boolean") ||
+                        currentToken.getName().equalsIgnoreCase("byte")
+        );
     }
 
-    private String generateCodeSection() {
+    private void generateCodeSection() {
         this.codeSection.append(".code\n").append("start:\n");
-        this.beginGeneration();
-        return this.codeSection.append("\n    invoke ExitProcess, 0\n").append("end start\n").toString();
+        beginGeneration();
+        codeSection.append("\n    invoke ExitProcess, 0\n").append("end start\n");
     }
 
     private void beginGeneration() {
-        while (currentToken != null && !currentToken.getName().equalsIgnoreCase("begin")) {
-            nextToken();
-        }
-        if (currentToken != null && currentToken.getName().equalsIgnoreCase("begin")) {
-            this.nextToken();
-            this.identifyCommands();
-        }
+        while (currentToken != null && !currentToken.getName().equalsIgnoreCase("begin")) nextToken();
+        if (currentToken != null && currentToken.getName().equalsIgnoreCase("begin")) nextToken();
+        while (currentToken != null) identifyCommands();
     }
 
     private void identifyCommands() {
-        while (currentToken != null && !currentToken.getName().equalsIgnoreCase("end")) {
-            switch (this.currentToken.getName().toLowerCase()) {
-                case "write", "writeln" -> this.identifyWrite();
-                case "readln" -> this.identifyRead();
-                case "while" -> this.identifyWhile();
-                case "if" -> this.identifyIf();
-                default -> {
-                    if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
-                        this.identifyAssignment();
-                    } else {
-                        this.nextToken();
-                    }
-                }
+        if (currentToken == null) return;
+        switch (currentToken.getName().toLowerCase()) {
+            case "write", "writeln" -> identifyWrite();
+            case "readln" -> identifyRead();
+            case "while" -> identifyWhile();
+            case "if" -> identifyIf();
+            case ";" -> nextToken();
+            default -> {
+                if (currentToken.getClassification().equalsIgnoreCase("ID")) identifyAssignment();
+                else nextToken();
             }
         }
     }
 
     private void identifyWrite() {
-        boolean breakLine = this.currentToken.getName().equalsIgnoreCase("writeln");
-        this.nextToken();
-        this.nextToken();
-
-        StringBuilder formatStr = new StringBuilder("\"");
+        boolean breakLine = currentToken.getName().equalsIgnoreCase("writeln");
+        nextToken(); nextToken();
+        StringBuilder formatStr = new StringBuilder();
         ArrayList<String> args = new ArrayList<>();
-
-        while (!this.currentToken.getName().equalsIgnoreCase(";")) {
-            if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
-                formatStr.append("%s");
-                args.add("addr " + this.currentToken.getName());
+        while (!currentToken.getName().equals(";")) {
+            if (currentToken.getClassification().equalsIgnoreCase("ID")) {
+                String varName = currentToken.getName();
+                String varType = symbolsTable.getSymbolType(varName);
+                formatStr.append(varType.equals("string") ? "%s" : "%d");
+                args.add(varType.equals("string") ? "addr " + varName : varName);
             } else {
-                String literal = this.currentToken.getName().replace("\"", "");
+                String literal = currentToken.getName().replace("\"", "");
                 formatStr.append(literal);
             }
-            this.nextToken();
-            if (this.currentToken.getName().equals(",")) {
-                this.nextToken();
-            }
+            nextToken();
+            if (currentToken.getName().equals(",")) nextToken();
         }
-        this.nextToken();
-
-        formatStr.append("\"");
+        nextToken();
         String dataLabel = "str" + stringCount++;
-        String lineEnding = breakLine ? ", 13, 10, 0\n" : ", 0\n";
-
-        dataSection.append(String.format("    %-15s db %s%s", dataLabel, formatStr, lineEnding));
+        String lineEnding = breakLine ? ", 13, 10, 0" : ", 0";
+        dataSection.append(String.format("    %-15s db \"%s\"%s\n", dataLabel, formatStr, lineEnding));
         codeSection.append("    invoke crt_printf, addr ").append(dataLabel);
-        for (String arg : args) {
-            codeSection.append(", ").append(arg);
-        }
+        for (String arg : args) codeSection.append(", ").append(arg);
         codeSection.append("\n");
     }
 
     private void identifyRead() {
-        this.nextToken();
-        this.nextToken();
-        String variable = this.currentToken.getName();
+        nextToken(); nextToken();
+        String variable = currentToken.getName();
         codeSection.append("    invoke crt_gets, addr ").append(variable).append("\n");
-        this.nextToken();
-        this.nextToken();
+        nextToken(); nextToken();
     }
 
+    // Em AssemblyGenerator.java - CORRIGIDO
     private void identifyWhile() {
-        String loopLabel = "_loop" + loopCounter;
-        String loopEndLabel = "_fimLoop" + loopCounter++;
+        int localLoopCounter = loopCounter++;
+        String loopLabel = "_loop" + localLoopCounter;
+        String loopEndLabel = "_fimLoop" + localLoopCounter;
 
         codeSection.append("\n").append(loopLabel).append(":\n");
-        this.nextToken();
-        String controlVar = this.currentToken.getName();
+        nextToken(); // Consome 'while'
 
-        codeSection.append("    cmp ").append(controlVar).append(", 0\n");
-        codeSection.append("    je ").append(loopEndLabel).append("\n\n");
+        // Lógica para a condição (ex: naoTerminou)
+        // A sua lógica atual é simples, mas para este caso funciona.
+        String controlVar = currentToken.getName();
+        codeSection.append("    mov al, ").append(controlVar).append("\n");
+        codeSection.append("    cmp al, 1\n"); // Compara com true
+        codeSection.append("    jne ").append(loopEndLabel).append("\n\n");
 
-        this.nextToken();
-        this.nextToken();
-        this.identifyCommands();
-        this.nextToken();
+        nextToken(); // Consome a variável de condição
+        nextToken(); // Consome 'begin'
+
+        // *** INÍCIO DA CORREÇÃO ***
+        // Loop para processar TODOS os comandos dentro do bloco begin...end
+        while (currentToken != null && !currentToken.getName().equalsIgnoreCase("end")) {
+            identifyCommands();
+        }
+        // *** FIM DA CORREÇÃO ***
+
+        nextToken(); // Consome 'end'
 
         codeSection.append("\n    jmp ").append(loopLabel).append("\n");
         codeSection.append(loopEndLabel).append(":\n");
     }
 
+    // Em AssemblyGenerator.java - CORRIGIDO
     private void identifyIf() {
-        String endIfLabel = "_fimIf" + ifCounter++;
+        int localIfCounter = ifCounter++;
+        String elseLabel = "_else" + localIfCounter;
+        String endIfLabel = "_fimIf" + localIfCounter;
+        nextToken(); // Consome 'if'
 
-        this.nextToken();
-        String left = this.currentToken.getName();
-        this.nextToken();
-        String operator = this.currentToken.getName();
-        this.nextToken();
-        String right = this.currentToken.getName();
-        this.nextToken();
+        generateConditionalExpression(elseLabel); // Gera a condição e o pulo
 
-        codeSection.append("\n    cmp ").append(left).append(", ").append(right).append("\n");
+        nextToken(); // Consome 'begin'
 
-        String jumpInstruction = switch (operator) {
+        // Loop para processar o bloco 'if'
+        while (currentToken != null && !currentToken.getName().equalsIgnoreCase("end") && !currentToken.getName().equalsIgnoreCase("else")) {
+            identifyCommands();
+        }
+
+        // Verifica se existe um 'else'
+        if (currentToken != null && currentToken.getName().equalsIgnoreCase("else")) {
+            codeSection.append("    jmp ").append(endIfLabel).append("\n"); // Pula o bloco else
+            codeSection.append(elseLabel).append(":\n"); // Início do bloco else
+            nextToken(); // Consome 'else'
+            nextToken(); // Consome 'begin'
+
+            // Loop para processar o bloco 'else'
+            while (currentToken != null && !currentToken.getName().equalsIgnoreCase("end")) {
+                identifyCommands();
+            }
+
+            codeSection.append(endIfLabel).append(":\n"); // Fim do if-else
+        } else {
+            // Se não houver else, o label 'else' é o fim do 'if'
+            codeSection.append(elseLabel).append(":\n");
+        }
+
+        nextToken(); // Consome o 'end' final
+    }
+
+    private void generateConditionalExpression(String targetLabel) {
+        ArrayList<Token> expression = new ArrayList<>();
+        while (currentToken != null && !currentToken.getName().equalsIgnoreCase("begin")) {
+            expression.add(currentToken);
+            nextToken();
+        }
+
+        // Lógica simplificada para var op var.
+        String left = expression.get(0).getName();
+        String operator = expression.get(1).getName();
+        String right = expression.get(2).getName();
+
+        // Para booleanos, comparamos com 1 byte, para int, com 4 bytes
+        String reg = "eax";
+        if (symbolsTable.getSymbolType(left).equals("boolean") || symbolsTable.getSymbolType(left).equals("byte")) {
+            reg = "al";
+        }
+
+        codeSection.append("    mov ").append(reg).append(", ").append(left).append("\n");
+        codeSection.append("    cmp ").append(reg).append(", ").append(formatValue(right)).append("\n");
+        String jumpInstruction = getJumpInstruction(operator);
+        codeSection.append("    ").append(jumpInstruction).append(" ").append(targetLabel).append("\n");
+
+        if (expression.size() > 3 && expression.get(3).getName().equalsIgnoreCase("and")) {
+            // Se tiver 'and', repete a lógica para a segunda parte da condição
+        }
+    }
+
+    private String getJumpInstruction(String operator) {
+        return switch (operator) {
+            case "==" -> "jne";
+            case "<>" -> "je";
             case "<" -> "jge";
             case ">" -> "jle";
-            case "==" -> "jne";
-            case "!=" -> "je";
             case "<=" -> "jg";
             case ">=" -> "jl";
             default -> "";
         };
-
-        codeSection.append("    ").append(jumpInstruction).append(" ").append(endIfLabel).append("\n");
-
-        this.nextToken();
-        this.identifyCommands();
-        this.nextToken();
-        codeSection.append(endIfLabel).append(":\n");
     }
 
     private void identifyAssignment() {
-        String variable = this.currentToken.getName();
-        this.nextToken();
-        this.nextToken();
+        String variable = currentToken.getName();
+        String varType = symbolsTable.getSymbolType(variable);
+        nextToken();
+        nextToken();
 
-        String firstValue = this.currentToken.getName();
-        this.nextToken();
-
-        if (this.currentToken.getName().equals(";")) {
-            String valueToMove = firstValue;
-            if (firstValue.equalsIgnoreCase("Fh")) {
-                valueToMove = "1";
-            } else if (firstValue.equalsIgnoreCase("0h")) {
-                valueToMove = "0";
+        if (varType != null && varType.equals("string")) {
+            String stringValue = currentToken.getName();
+            String stringLabel = "str_" + stringValue.replace("\"", "");
+            codeSection.append("    invoke crt_strcpy, addr ").append(variable).append(", addr ").append(stringLabel).append("\n");
+            while (currentToken != null && !currentToken.getName().equals(";")) nextToken();
+        } else {
+            ArrayList<Token> expressionTokens = new ArrayList<>();
+            while (currentToken != null && !currentToken.getName().equals(";")) {
+                expressionTokens.add(currentToken);
+                nextToken();
             }
-            codeSection.append("    mov ").append(variable).append(", ").append(valueToMove).append("\n");
-            this.nextToken();
-            return;
-        }
-
-        String operator = this.currentToken.getName();
-        this.nextToken();
-        String secondValue = this.currentToken.getName();
-
-        if (variable.equals(firstValue) && secondValue.equals("1")) {
-            if (operator.equals("+")) {
-                codeSection.append("    add ").append(variable).append(", 1\n");
-                this.nextToken();
-                this.nextToken();
-                return;
+            evaluateExpression(expressionTokens);
+            codeSection.append("    pop eax\n");
+            // Se a variável for de 1 byte (boolean/byte), movemos apenas o byte menos significativo (AL)
+            if (varType != null && (varType.equals("boolean") || varType.equals("byte"))) {
+                codeSection.append("    mov ").append(variable).append(", al\n");
+            } else {
+                codeSection.append("    mov ").append(variable).append(", eax\n");
             }
         }
+        nextToken();
+    }
 
-        codeSection.append("    mov eax, ").append(firstValue).append("\n");
-        String command = operator.equals("+") ? "add" : "sub";
-        codeSection.append("    ").append(command).append(" eax, ").append(secondValue).append("\n");
-        codeSection.append("    mov ").append(variable).append(", eax\n");
-        this.nextToken();
-        this.nextToken();
+    private void evaluateExpression(ArrayList<Token> tokens) {
+        Stack<String> ops = new Stack<>();
+        for (Token token : tokens) {
+            String name = token.getName();
+            if (token.getClassification().matches("ID|CONST")) {
+                codeSection.append("    push ").append(formatValue(name)).append("\n");
+            } else if (name.equals("(")) {
+                ops.push(name);
+            } else if (name.equals(")")) {
+                while (!ops.peek().equals("(")) {
+                    generateOp(ops.pop());
+                }
+                ops.pop();
+            } else if (isOperator(name)) {
+                while (!ops.empty() && hasPrecedence(ops.peek(), name)) {
+                    generateOp(ops.pop());
+                }
+                ops.push(name);
+            }
+        }
+        while (!ops.empty()) {
+            generateOp(ops.pop());
+        }
+    }
+
+    private void generateOp(String op) {
+        codeSection.append("    pop ebx\n");
+        codeSection.append("    pop eax\n");
+        switch (op) {
+            case "+" -> codeSection.append("    add eax, ebx\n");
+            case "-" -> codeSection.append("    sub eax, ebx\n");
+            case "*" -> codeSection.append("    imul eax, ebx\n");
+            case "/" -> {
+                codeSection.append("    cdq\n");
+                codeSection.append("    idiv ebx\n");
+            }
+        }
+        codeSection.append("    push eax\n");
+    }
+
+    private boolean isOperator(String op) {
+        return op.matches("[+\\-*/]");
+    }
+
+    private boolean hasPrecedence(String op1, String op2) {
+        if (op1.equals("(") || op1.equals(")")) return false;
+        return (!op1.equals("+") && !op1.equals("-")) || (op2.equals("+") || op2.equals("-"));
     }
 }

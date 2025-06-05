@@ -22,14 +22,14 @@ include \masm32\macros\macros.asm
     str3        db "Seu nome eh: %s", 13, 10, 0
     str4        db "Resultado final da soma: %d", 13, 10, 0
     
-    ; CORRE«√O: Declarar strings a serem usadas na seÁ„o .data
+    ; CORRE√á√ÉO: Declarar strings a serem usadas na se√ß√£o .data
     nomeNathan  db "Nathan", 0
     nomeNatan   db "Natan", 0
 
 .code
 start:
     invoke crt_printf, addr str1
-    ; CORRE«√O: Usar a funÁ„o segura 'fgets' para evitar travamentos
+    ; CORRE√á√ÉO: Usar a fun√ß√£o segura 'fgets' para evitar travamentos
     invoke crt_fgets, addr nome, 256, stdin
     mov naoTerminou, 1
     mov n, 0
@@ -64,22 +64,22 @@ _fimIf1:
 _if2:
     cmp naoTerminou, 0
     je _setNomeNatan
-    ; CORRE«√O: Usar 'invoke crt_strcpy' para copiar a string
+    ; CORRE√á√ÉO: Usar 'invoke crt_strcpy' para copiar a string
     invoke crt_strcpy, addr nome, addr nomeNathan
     jmp _fimIf2
 
 _setNomeNatan:
-    ; CORRE«√O: Usar 'invoke crt_strcpy' para copiar a string
+    ; CORRE√á√ÉO: Usar 'invoke crt_strcpy' para copiar a string
     invoke crt_strcpy, addr nome, addr nomeNatan
 
 _fimIf2:
 
-    ; CORRE«√O: LÛgica do c·lculo para n = 1 + 2*3/2 + (10-2)
-    ; O resultado correto È 12
+    ; CORRE√á√ÉO: L√≥gica do c√°lculo para n = 1 + 2*3/2 + (10-2)
+    ; O resultado correto √© 12
     mov eax, 2
     mov ebx, 3
     mul ebx         ; eax = 6
-    xor edx, edx    ; Zera edx para a divis„o
+    xor edx, edx    ; Zera edx para a divis√£o
     mov ebx, 2
     div ebx         ; eax = 3
     add eax, 1      ; eax = 4
