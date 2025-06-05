@@ -1,0 +1,61 @@
+int num1;
+int num2;
+int resultado;
+int operacao;           { Código da operação (1:Soma, 2:Sub, 3:Mult, 4:Div) }
+int escolhaContinuar;   { Escolha do usuário para continuar (1:Sim, 0:Nao) }
+boolean continuarLoop;
+{ Bloco Principal }
+begin
+    continuarLoop=true;
+    while continuarLoop begin
+        writeln,"--- Calculadora LC ---";
+        writeln," ";
+        write,"Digite o primeiro numero: ";
+        readln,num1;
+        write,"Digite o segundo numero: ";
+        readln,num2;
+        writeln," ";
+        writeln,"Escolha a operacao:";
+        writeln,"1. Soma (+)";
+        writeln,"2. Subtracao (-)";
+        writeln,"3. Multiplicacao (*)";
+        writeln,"4. Divisao (/)";
+        write,"Opcao (1-4): ";
+        readln,operacao;
+        writeln," ";
+        if operacao==1 begin
+            resultado=num1+num2;
+            writeln,"Resultado da Soma: ",resultado;
+        end
+        if operacao==2 begin
+            resultado=num1-num2;
+            writeln,"Resultado da Subtracao: ", resultado;
+        end
+        if operacao==3 begin
+            resultado=num1*num2;
+            writeln,"Resultado da Multiplicacao: ",resultado;
+        end
+        if operacao==4 begin
+            if num2==0 begin
+                writeln,"Erro: Divisao por zero nao permitida!";
+            end
+            if num2<>0 begin
+                resultado=num1/num2;
+                writeln,"Resultado da Divisao: ",resultado;
+            end
+        end
+        writeln," ";
+        write,"Deseja fazer outra operacao? (1 para Sim, 0 para Nao): ";
+        readln,escolhaContinuar;
+        if escolhaContinuar==0 begin
+            continuarLoop=false;
+        end
+        if escolhaContinuar<>0 begin
+            writeln," ";
+            writeln,"-------------------------";
+            writeln," ";
+        end
+    end
+    writeln," ";
+    writeln,"Calculadora encerrada.";
+end
