@@ -38,14 +38,14 @@ public class SyntaticAnalyzer {
             parseDeclarations();
             parseBlock();
         } catch (Exception e) {
-            System.err.println("Erro de análise sintática: " + e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 
     private void parseDeclarations() throws CompilerException {
         if (isPrimitiveType() || currentToken.getName().equalsIgnoreCase("final")) {
             nextToken();
-            expectClassification("ID");
+            expectClassification("id");
 
             nextToken();
             if (currentToken.getName().equalsIgnoreCase("=")) {
@@ -59,7 +59,7 @@ public class SyntaticAnalyzer {
             expectName(";");
             nextToken();
 
-            parseDeclarations(); // recursão para múltiplas declarações
+            parseDeclarations();
         }
     }
 
@@ -104,10 +104,10 @@ public class SyntaticAnalyzer {
                 parseBlock();
                 break;
             default:
-                if (currentToken.getClassification().equalsIgnoreCase("ID")) {
+                if (currentToken.getClassification().equalsIgnoreCase("id")) {
                     parseAssignment();
                 } else {
-                    ErrorHandler.syntaxError("Comando válido esperado", currentToken);
+                    ErrorHandler.syntaxError("um comando válido", currentToken);
                 }
         }
     }
@@ -170,7 +170,7 @@ public class SyntaticAnalyzer {
 
         if (identifyLogicalOperator()) {
             nextToken();
-            parseLogicalExpression(); // lado direito recursivo
+            parseLogicalExpression();
         }
     }
 
@@ -203,7 +203,7 @@ public class SyntaticAnalyzer {
     }
 
     private void parseFactor() throws CompilerException {
-        if (isConstOrId() || currentToken.getType().equalsIgnoreCase("BOOLEAN")) {
+        if (isConstOrId() || currentToken.getType().equalsIgnoreCase("boolean")) {
             nextToken();
         } else if (currentToken.getName().equalsIgnoreCase("(")) {
             nextToken();
@@ -239,8 +239,8 @@ public class SyntaticAnalyzer {
     }
 
     private boolean isConstOrId() {
-        return currentToken.getClassification().equalsIgnoreCase("CONST") ||
-                currentToken.getClassification().equalsIgnoreCase("ID");
+        return currentToken.getClassification().equalsIgnoreCase("const") ||
+                currentToken.getClassification().equalsIgnoreCase("id");
     }
 
     private boolean identifyLogicalOperator() {

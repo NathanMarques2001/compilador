@@ -43,18 +43,20 @@ public class LexicalAnalyzer {
             }
 
             if ((matcher = bool.matcher(code)).lookingAt()) {
-                symbolsTable.addToken(new Token(resolveBoolean(matcher.group()), "CONST", "boolean", lineNumber, columnNumber));
+                symbolsTable.addToken(new Token(resolveBoolean(matcher.group()), "const", "boolean", lineNumber, columnNumber));
                 matched = true;
 
             } else if ((matcher = strings.matcher(code)).lookingAt()) {
                 String lexeme = matcher.group();
+
                 if (lexeme.length() > 255) {
-                    ErrorHandler.lexicalError("String excede 255 caracteres", lineNumber, columnNumber);
+                    ErrorHandler.lexicalErrorStringTooLong(lineNumber, columnNumber);
                 }
                 if (lexeme.contains("\n") || lexeme.contains("\r")) {
-                    ErrorHandler.lexicalError("String não pode conter quebra de linha", lineNumber, columnNumber);
+                    ErrorHandler.lexicalErrorBreakLine(lineNumber, columnNumber);
                 }
-                symbolsTable.addToken(new Token(lexeme, "CONST", "string", lineNumber, columnNumber));
+
+                symbolsTable.addToken(new Token(lexeme, "const", "string", lineNumber, columnNumber));
                 matched = true;
 
             } else if ((matcher = hexadecimals.matcher(code)).lookingAt()) {
@@ -62,36 +64,37 @@ public class LexicalAnalyzer {
                 String hexValue = hexLexeme.substring(2);
 
                 if (hexValue.length() > 2) {
-                    ErrorHandler.lexicalError("Byte inválido: mais de 2 dígitos após '0h'", lineNumber, columnNumber);
+                    ErrorHandler.lexicalErrorInvalidHexByte(hexLexeme, lineNumber, columnNumber);
                 }
-                symbolsTable.addToken(new Token(hexLexeme, "CONST", "byte", lineNumber, columnNumber));
+
+                symbolsTable.addToken(new Token(hexLexeme, "const", "byte", lineNumber, columnNumber));
                 matched = true;
 
             } else if ((matcher = numbers.matcher(code)).lookingAt()) {
                 String intLexeme = matcher.group();
-                try {
-                    int value = Integer.parseInt(intLexeme);
-                    if (value < -32768 || value > 32767) {
-                        ErrorHandler.lexicalError("Inteiro fora do intervalo (-32768 a 32767): '" + intLexeme + "'", lineNumber, columnNumber);
-                    }
-                } catch (NumberFormatException e) {
-                    ErrorHandler.lexicalError("Inteiro inválido: '" + intLexeme + "'", lineNumber, columnNumber);
+
+                int value = Integer.parseInt(intLexeme);
+                if (value < -32768 || value > 32767) {
+                    ErrorHandler.lexicalErrorIntOutOfRange(intLexeme, lineNumber, columnNumber);
                 }
-                symbolsTable.addToken(new Token(intLexeme, "CONST", "int", lineNumber, columnNumber));
+
+                symbolsTable.addToken(new Token(intLexeme, "const", "int", lineNumber, columnNumber));
                 matched = true;
 
             } else if ((matcher = matchReservedOrID(code)) != null) {
                 String lexeme = matcher.group();
-                String lexemeLower = lexeme.toLowerCase(); // Case insensitive
+                String lexemeLower = lexeme.toLowerCase();
+
                 if (lexemeLower.length() > 255) {
-                    ErrorHandler.lexicalError("Identificador excede 255 caracteres", lineNumber, columnNumber);
+                    ErrorHandler.lexicalErrorIdentifierTooLong(lexeme, lineNumber, columnNumber);
                 }
-                String type = symbolsTable.isReservedWord(lexemeLower) ? "RESERVED_WORD" : "ID";
-                symbolsTable.addToken(new Token(lexeme, type, "NULL", lineNumber, columnNumber));
+
+                String type = symbolsTable.isReservedWord(lexemeLower) ? "reserved_word" : "id";
+                symbolsTable.addToken(new Token(lexeme, type, "null", lineNumber, columnNumber));
                 matched = true;
 
             } else {
-                ErrorHandler.lexicalError("Símbolo inválido: '" + code.charAt(0) + "'", lineNumber, columnNumber);
+                ErrorHandler.lexicalErrorInvalidSymbol(code.charAt(0), lineNumber, columnNumber);
             }
 
             if (matched) {

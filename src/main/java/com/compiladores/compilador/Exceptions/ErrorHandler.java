@@ -6,52 +6,40 @@ public class ErrorHandler {
 
     // ========== ERROS LÉXICOS ==========
 
-    public static void lexicalError(String lexeme, int line, int column) throws CompilerException {
-        throw new CompilerException(buildLexicalMessage(lexeme, line, column));
+    public static void lexicalErrorInvalidSymbol(char symbol, int line, int column) throws CompilerException {
+        throw new CompilerException("Símbolo inválido: '" + symbol + "' na linha " + line + ", coluna " + column);
     }
 
     public static void lexicalErrorIdentifierTooLong(String lexeme, int line, int column) throws CompilerException {
-        throw new CompilerException("Erro Léxico: identificador '" + lexeme + "' excede o tamanho máximo permitido na linha " + line + ", coluna " + column);
+        throw new CompilerException("Erro Léxico: identificador '" + lexeme + "' excede o limite de 255 caracteres na linha " + line + ", coluna " + column);
     }
 
-    public static void lexicalErrorStringTooLong(String lexeme, int line, int column) throws CompilerException {
+    public static void lexicalErrorStringTooLong(int line, int column) throws CompilerException {
         throw new CompilerException("Erro Léxico: literal string excede o limite de 255 caracteres na linha " + line + ", coluna " + column);
     }
 
-    public static void lexicalErrorEmptyString(int line, int column) throws CompilerException {
-        throw new CompilerException("Erro Léxico: literal string vazia na linha " + line + ", coluna " + column);
+    public static void lexicalErrorBreakLine(int line, int column) throws CompilerException {
+        throw new CompilerException("Erro Léxico: literal string nao pode conter quebra de linha com '\\n' ou '\\r' na linha " + line + ", coluna " + column);
     }
 
     public static void lexicalErrorInvalidHexByte(String lexeme, int line, int column) throws CompilerException {
-        throw new CompilerException("Erro Léxico: byte hexadecimal inválido '" + lexeme + "' na linha " + line + ", coluna " + column);
+        throw new CompilerException("Erro Léxico: byte hexadecimal inválido! O formato deve ser 0hXX (X vai de 0 a F) '" + lexeme + "' na linha " + line + ", coluna " + column);
     }
 
     public static void lexicalErrorIntOutOfRange(String lexeme, int line, int column) throws CompilerException {
         throw new CompilerException("Erro Léxico: valor inteiro '" + lexeme + "' fora do intervalo permitido (-32768 a 32767), na linha " + line + ", coluna " + column);
     }
 
-    private static String buildLexicalMessage(String lexeme, int line, int column) {
-        return "Erro Léxico: token não reconhecido '" + lexeme + "' na linha " + line + ", coluna " + column;
-    }
-
     // ========== ERROS SINTÁTICOS ==========
 
     public static void syntaxError(String expected, Token found) throws CompilerException {
-        throw new CompilerException(buildSyntaxMessage(expected, found));
+        throw new CompilerException("Erro Sintático: esperado '" + expected + "', mas encontrado '" +
+                found.getName() + "' na linha " + found.getLine() + ", coluna " + found.getColumn());
     }
 
     public static void syntaxErrorAssignment(Token found) throws CompilerException {
-        throw new CompilerException(buildSyntaxAssignmentMessage(found));
-    }
-
-    private static String buildSyntaxMessage(String expected, Token found) {
-        return "Erro Sintático: esperado '" + expected + "', mas encontrado '" +
-                found.getName() + "' na linha " + found.getLine() + ", coluna " + found.getColumn();
-    }
-
-    private static String buildSyntaxAssignmentMessage(Token found) {
-        return "Erro Sintático: esperado uma atribuição de valor vindo ou não de uma variável, mas encontrado '" +
-                found.getName() + "' na linha " + found.getLine() + ", coluna " + found.getColumn();
+        throw new CompilerException("Erro Sintático: esperado uma atribuição de valor vindo ou não de uma variável, mas encontrado '" +
+                found.getName() + "' na linha " + found.getLine() + ", coluna " + found.getColumn());
     }
 
     // ========== ERROS SEMÂNTICOS ==========
