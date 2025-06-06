@@ -41,10 +41,8 @@ public class Main {
             // Executa a geração de código assembly
             runAssemblyGeneration(table, fileName);
 
-        } catch (CompilerException e) {
-            System.err.println("Erro no compilador: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("Erro inesperado: " + e.getMessage());
+            System.err.println(e.getMessage());
         }
     }
 
