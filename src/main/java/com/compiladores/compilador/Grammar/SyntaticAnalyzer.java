@@ -1,11 +1,9 @@
-
 package com.compiladores.compilador.Grammar;
 
 import com.compiladores.compilador.Exceptions.CompilerException;
 import com.compiladores.compilador.Exceptions.ErrorHandler;
 import com.compiladores.compilador.Lexical.Token;
 import com.compiladores.compilador.Table.SymbolsTable;
-
 
 public class SyntaticAnalyzer {
 
@@ -15,98 +13,113 @@ public class SyntaticAnalyzer {
 
     public SyntaticAnalyzer(SymbolsTable symbolsTable) {
         this.symbolsTable = symbolsTable;
-        this.currentToken = symbolsTable.currentToken(this.currentTokenIndex);
+        this.currentToken = symbolsTable.currentToken(currentTokenIndex);
     }
 
     private void nextToken() {
-        this.currentToken = this.symbolsTable.currentToken(++this.currentTokenIndex);
+        currentToken = symbolsTable.currentToken(++currentTokenIndex);
     }
 
     private void expectClassification(String expected) throws CompilerException {
-        if (!currentToken.getClassification().equals(expected) && !currentToken.getName().equals(expected)) {
+        if (!currentToken.getClassification().equalsIgnoreCase(expected) &&
+                !currentToken.getName().equalsIgnoreCase(expected)) {
             ErrorHandler.syntaxError(expected, currentToken);
         }
     }
 
     private void expectName(String expected) throws CompilerException {
-        if (!currentToken.getName().equals(expected)) {
+        if (!currentToken.getName().equalsIgnoreCase(expected)) {
             ErrorHandler.syntaxError(expected, currentToken);
         }
     }
 
     public void parseProgram() {
         try {
-            this.parseDeclarations();
-            this.parseBlock();
+            parseDeclarations();
+            parseBlock();
         } catch (Exception e) {
-            System.err.println("Erro de analise sintatica: " + e.getMessage());
+            System.err.println("Erro de análise sintática: " + e.getMessage());
         }
     }
 
-    void parseDeclarations() throws CompilerException {
-        if (this.isPrimitiveType() || this.currentToken.getName().equals("final")) {
-            this.nextToken();
-            this.expectClassification("ID");
+    private void parseDeclarations() throws CompilerException {
+        if (isPrimitiveType() || currentToken.getName().equalsIgnoreCase("final")) {
+            nextToken();
+            expectClassification("ID");
 
-            this.nextToken();
-            if (this.currentToken.getName().equals("=")) {
-                this.nextToken();
-                if (!this.isConstOrId()) {
-                    ErrorHandler.syntaxErrorAssignment(this.currentToken);
+            nextToken();
+            if (currentToken.getName().equalsIgnoreCase("=")) {
+                nextToken();
+                if (!isConstOrId()) {
+                    ErrorHandler.syntaxErrorAssignment(currentToken);
                 }
-                this.nextToken();
+                nextToken();
             }
+
             expectName(";");
-            this.nextToken();
-            this.parseDeclarations();
+            nextToken();
+
+            parseDeclarations(); // recursão para múltiplas declarações
         }
     }
 
-    void parseBlock() throws CompilerException {
-        this.expectName("begin");
-        this.nextToken();
-        this.parseCommands();
-        this.expectName("end");
-        if (this.currentTokenIndex < this.symbolsTable.getSize() - 1) {
-            this.nextToken();
+    private void parseBlock() throws CompilerException {
+        expectName("begin");
+        nextToken();
+        parseCommands();
+        expectName("end");
+        if (currentTokenIndex < symbolsTable.getSize() - 1) {
+            nextToken();
         }
     }
 
-    void parseCommands() throws CompilerException {
-        if (!this.currentToken.getName().equals("end")) {
-            this.parseCommand();
-            this.parseCommands();
+    private void parseCommands() throws CompilerException {
+        if (!currentToken.getName().equalsIgnoreCase("end")) {
+            parseCommand();
+            parseCommands();
         }
     }
 
-    void parseCommand() throws CompilerException {
-        if (this.currentToken.getName().equals("write") || this.currentToken.getName().equals("writeln")) {
-            this.parseWrite();
-        } else if (this.currentToken.getName().equals("readln")) {
-            this.parseReadln();
-        } else if (this.currentToken.getClassification().equals("ID")) {
-            this.parseAssignment();
-        } else if (this.currentToken.getName().equals("while")) {
-            this.parseWhile();
-        } else if (this.currentToken.getName().equals("if")) {
-            this.parseIf();
-        } else if (this.currentToken.getName().equals("else")) {
-            this.parseElse();
-        } else if (this.currentToken.getName().equals("begin")) {
-            this.parseBlock();
-        } else {
-            ErrorHandler.syntaxError("Comando válido esperado", currentToken);
+    private void parseCommand() throws CompilerException {
+        String name = currentToken.getName().toLowerCase();
+
+        switch (name) {
+            case "write":
+            case "writeln":
+                parseWrite();
+                break;
+            case "readln":
+                parseReadln();
+                break;
+            case "while":
+                parseWhile();
+                break;
+            case "if":
+                parseIf();
+                break;
+            case "else":
+                parseElse();
+                break;
+            case "begin":
+                parseBlock();
+                break;
+            default:
+                if (currentToken.getClassification().equalsIgnoreCase("ID")) {
+                    parseAssignment();
+                } else {
+                    ErrorHandler.syntaxError("Comando válido esperado", currentToken);
+                }
         }
     }
 
-    void parseWrite() throws CompilerException {
+    private void parseWrite() throws CompilerException {
         nextToken();
         parseStrConcat();
         expectName(";");
         nextToken();
     }
 
-    void parseStrConcat() throws CompilerException {
+    private void parseStrConcat() throws CompilerException {
         expectName(",");
         nextToken();
 
@@ -117,42 +130,37 @@ public class SyntaticAnalyzer {
         parseStrConcatTail();
     }
 
-    void parseStrConcatTail() throws CompilerException {
-        if (currentToken.getName().equals(",")) {
+    private void parseStrConcatTail() throws CompilerException {
+        if (currentToken.getName().equalsIgnoreCase(",")) {
             parseStrConcat();
         }
     }
 
-    void parseReadln() throws CompilerException {
-        this.nextToken();
-        this.expectName(",");
-        this.nextToken();
-        this.expectClassification("ID");
-        this.nextToken();
-        this.expectName(";");
-        this.nextToken();
+    private void parseReadln() throws CompilerException {
+        nextToken();
+        expectName(",");
+        nextToken();
+        expectClassification("ID");
+        nextToken();
+        expectName(";");
+        nextToken();
     }
 
-    void parseAssignment() throws CompilerException {
-        this.nextToken();
-        this.expectName("=");
-        this.nextToken();
-        this.parseExpression();
-        this.expectName(";");
-        this.nextToken();
+    private void parseAssignment() throws CompilerException {
+        nextToken();
+        expectName("=");
+        nextToken();
+        parseExpression();
+        expectName(";");
+        nextToken();
     }
 
-    // EXPRESSAO -> EXPRESSAO_LOGICA
-    void parseExpression() throws CompilerException {
+    private void parseExpression() throws CompilerException {
         parseLogicalExpression();
     }
 
-    // EXPRESSAO_LOGICA -> "not" EXPRESSAO_LOGICA
-    //                   | EXPRESSAO_ARITM COMPARADOR EXPRESSAO_ARITM
-    //                   | EXPRESSAO_LOGICA LOGICO EXPRESSAO_LOGICA
-    //                   | EXPRESSAO_ARITM
-    void parseLogicalExpression() throws CompilerException {
-        if (currentToken.getName().equals("not")) {
+    private void parseLogicalExpression() throws CompilerException {
+        if (currentToken.getName().equalsIgnoreCase("not")) {
             nextToken();
             parseLogicalExpression();
             return;
@@ -162,45 +170,42 @@ public class SyntaticAnalyzer {
 
         if (identifyLogicalOperator()) {
             nextToken();
-            parseLogicalExpression();  // lado direito pode ser nova lógica
+            parseLogicalExpression(); // lado direito recursivo
         }
     }
 
-    // EXPRESSAO_ARITM -> TERMO EXPRESSAO_ARITM_TAIL
-    void parseArithmeticExpression() throws CompilerException {
+    private void parseArithmeticExpression() throws CompilerException {
         parseTerm();
         parseArithmeticExpressionTail();
     }
 
-    // EXPRESSAO_ARITM_TAIL -> ("+"|"-") TERMO EXPRESSAO_ARITM_TAIL | ε
-    void parseArithmeticExpressionTail() throws CompilerException {
-        if (currentToken.getName().equals("+") || currentToken.getName().equals("-")) {
+    private void parseArithmeticExpressionTail() throws CompilerException {
+        if (currentToken.getName().equalsIgnoreCase("+") ||
+                currentToken.getName().equalsIgnoreCase("-")) {
             nextToken();
             parseTerm();
             parseArithmeticExpressionTail();
         }
     }
 
-    // TERMO -> FATOR TERMO_TAIL
-    void parseTerm() throws CompilerException {
+    private void parseTerm() throws CompilerException {
         parseFactor();
         parseTermTail();
     }
 
-    // TERMO_TAIL -> ("*"|"/") FATOR TERMO_TAIL | ε
-    void parseTermTail() throws CompilerException {
-        if (currentToken.getName().equals("*") || currentToken.getName().equals("/")) {
+    private void parseTermTail() throws CompilerException {
+        if (currentToken.getName().equalsIgnoreCase("*") ||
+                currentToken.getName().equalsIgnoreCase("/")) {
             nextToken();
             parseFactor();
             parseTermTail();
         }
     }
 
-    // FATOR -> CONST | ID | "(" EXPRESSAO ")"
-    void parseFactor() throws CompilerException {
-        if (isConstOrId() || this.currentToken.getType().equals("BOOLEAN")) {
+    private void parseFactor() throws CompilerException {
+        if (isConstOrId() || currentToken.getType().equalsIgnoreCase("BOOLEAN")) {
             nextToken();
-        } else if (currentToken.getName().equals("(")) {
+        } else if (currentToken.getName().equalsIgnoreCase("(")) {
             nextToken();
             parseExpression();
             expectName(")");
@@ -210,38 +215,38 @@ public class SyntaticAnalyzer {
         }
     }
 
-    void parseWhile() throws CompilerException {
-        this.nextToken();
-        this.parseExpression();
-        this.parseBlock();
-    }
-
-    void parseIf() throws CompilerException {
+    private void parseWhile() throws CompilerException {
         nextToken();
         parseExpression();
         parseBlock();
     }
 
-    void parseElse() throws CompilerException {
-        this.nextToken();
-        this.parseBlock();
+    private void parseIf() throws CompilerException {
+        nextToken();
+        parseExpression();
+        parseBlock();
     }
 
-    boolean isPrimitiveType() {
-        return (currentToken.getName().equals("int") || currentToken.getName().equals("string")
-                || currentToken.getName().equals("boolean") || currentToken.getName().equals("byte"));
+    private void parseElse() throws CompilerException {
+        nextToken();
+        parseBlock();
     }
 
-    boolean isConstOrId() {
-        return (this.currentToken.getClassification().equals("CONST")
-                || this.currentToken.getClassification().equals("ID"));
+    private boolean isPrimitiveType() {
+        String name = currentToken.getName().toLowerCase();
+        return name.equals("int") || name.equals("string")
+                || name.equals("boolean") || name.equals("byte");
     }
 
-    boolean identifyLogicalOperator() {
-        return (this.currentToken.getName().equals("==") || this.currentToken.getName().equals("<")
-                || this.currentToken.getName().equals("<=") || this.currentToken.getName().equals(">")
-                || this.currentToken.getName().equals(">=") || this.currentToken.getName().equals("<>")
-                || this.currentToken.getName().equals("and") || this.currentToken.getName().equals("or")
-                || this.currentToken.getName().equals("not"));
+    private boolean isConstOrId() {
+        return currentToken.getClassification().equalsIgnoreCase("CONST") ||
+                currentToken.getClassification().equalsIgnoreCase("ID");
+    }
+
+    private boolean identifyLogicalOperator() {
+        String op = currentToken.getName().toLowerCase();
+        return op.equals("==") || op.equals("<") || op.equals("<=") ||
+                op.equals(">") || op.equals(">=") || op.equals("<>") ||
+                op.equals("and") || op.equals("or") || op.equals("not");
     }
 }
