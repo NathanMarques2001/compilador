@@ -1,6 +1,6 @@
-package com.compiladores.compilador.Exceptions;
+package com.compiladores.compilador.exceptions;
 
-import com.compiladores.compilador.Lexical.Token;
+import com.compiladores.compilador.lexer.Token;
 
 public class ErrorHandler {
 
@@ -19,7 +19,7 @@ public class ErrorHandler {
     }
 
     public static void lexicalErrorBreakLine(int line, int column) throws CompilerException {
-        throw new CompilerException("Erro Léxico: literal string nao pode conter quebra de linha com '\\n' ou '\\r' na linha " + line + ", coluna " + column);
+        throw new CompilerException("Erro Léxico: literal string não pode conter quebra de linha com '\\n' ou '\\r' na linha " + line + ", coluna " + column);
     }
 
     public static void lexicalErrorInvalidHexByte(String lexeme, int line, int column) throws CompilerException {
@@ -42,6 +42,11 @@ public class ErrorHandler {
                 found.getName() + "' na linha " + found.getLine() + ", coluna " + found.getColumn());
     }
 
+    public static void syntaxErrorAssignmentLogicalExpression(Token found) throws CompilerException {
+        throw new CompilerException("Erro Sintático: atribuição inválida! Não é possível atribuir valor a uma variável vindo de uma expressão lógica '" +
+                found.getName() + "' na linha " + found.getLine() + ", coluna " + found.getColumn());
+    }
+
     // ========== ERROS SEMÂNTICOS ==========
 
     public static void semanticErrorAssignment(Token wrongToken, Token declaredToken) throws CompilerException {
@@ -61,25 +66,31 @@ public class ErrorHandler {
     }
 
     public static void semanticErrorInvalidToken(Token token) throws CompilerException {
-        throw new CompilerException(
-                "Erro Semântico: expressão inválida com token '" + token.getName() +
-                        "' na linha " + token.getLine() + ", coluna " + token.getColumn()
-        );
+        throw new CompilerException("Erro Semântico: expressão inválida com token '" + token.getName() +
+                "' na linha " + token.getLine() + ", coluna " + token.getColumn());
     }
 
     public static void semanticErrorExpectedOperandAfter(String operator, Token token) throws CompilerException {
-        throw new CompilerException(
-                "Erro Semântico: esperado operando após operador '" + operator +
-                        "' na linha " + token.getLine() + ", coluna " + token.getColumn()
-        );
+        throw new CompilerException("Erro Semântico: esperado operando após operador '" + operator +
+                "' na linha " + token.getLine() + ", coluna " + token.getColumn());
     }
 
     public static void semanticErrorInvalidExpressionAfterControl(Token token) throws CompilerException {
-        throw new CompilerException(
-                "Erro Semântico: expressão inválida após if/while, token '" + token.getName() +
-                        "' na linha " + token.getLine() + ", coluna " + token.getColumn()
-        );
+        throw new CompilerException("Erro Semântico: expressão inválida após if/while, token '" + token.getName() +
+                "' na linha " + token.getLine() + ", coluna " + token.getColumn());
     }
+
+    public static void semanticErrorInvalidType(Token token) throws CompilerException {
+        throw new CompilerException("Erro Semântico: tipo inválido ou inexistente '" + token.getName() +
+                "' na linha " + token.getLine() + ", coluna " + token.getColumn());
+    }
+
+    public static void semanticErrorAssignmentToFinal(Token token) throws CompilerException {
+        throw new CompilerException("Erro Semântico: não é permitido atribuir novo valor à variável final '" +
+                token.getName() + "' na linha " + token.getLine() + ", coluna " + token.getColumn());
+    }
+
+    // ========== MENSAGENS AUXILIARES ==========
 
     private static String buildSemanticAssignmentMessage(Token wrongToken, Token declaredToken) {
         return "Erro Semântico: atribuição incorreta! Foi atribuído um tipo '" + wrongToken.getType() +

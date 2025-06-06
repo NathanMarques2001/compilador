@@ -1,4 +1,4 @@
-package com.compiladores.compilador.Lexical;
+package com.compiladores.compilador.lexer;
 
 public class Token {
 

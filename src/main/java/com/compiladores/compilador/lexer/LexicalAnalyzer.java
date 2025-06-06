@@ -1,8 +1,9 @@
-package com.compiladores.compilador.Lexical;
+package com.compiladores.compilador.lexer;
 
-import com.compiladores.compilador.Exceptions.CompilerException;
-import com.compiladores.compilador.Exceptions.ErrorHandler;
-import com.compiladores.compilador.Table.SymbolsTable;
+import com.compiladores.compilador.exceptions.CompilerException;
+import com.compiladores.compilador.exceptions.ErrorHandler;
+import com.compiladores.compilador.symboltable.SymbolsTable;
+import com.compiladores.compilador.utils.TokenUtils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

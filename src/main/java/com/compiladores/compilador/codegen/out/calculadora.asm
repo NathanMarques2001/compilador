@@ -72,8 +72,6 @@ _loop1:
     mov eax, operacao
     cmp eax, 1
     jne _else1
-    push num1
-    push num2
     pop ebx
     pop eax
     add eax, ebx
@@ -85,8 +83,6 @@ _else1:
     mov eax, operacao
     cmp eax, 2
     jne _else2
-    push num1
-    push num2
     pop ebx
     pop eax
     sub eax, ebx
@@ -98,8 +94,6 @@ _else2:
     mov eax, operacao
     cmp eax, 3
     jne _else3
-    push num1
-    push num2
     pop ebx
     pop eax
     imul eax, ebx
@@ -119,8 +113,6 @@ _else5:
     mov eax, num2
     cmp eax, 0
     je _else6
-    push num1
-    push num2
     pop ebx
     pop eax
     cdq

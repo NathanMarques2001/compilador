@@ -1,6 +1,6 @@
-package com.compiladores.compilador.Table;
+package com.compiladores.compilador.symboltable;
 
-import com.compiladores.compilador.Lexical.Token;
+import com.compiladores.compilador.lexer.Token;
 
 import java.util.Set;
 import java.util.ArrayList;

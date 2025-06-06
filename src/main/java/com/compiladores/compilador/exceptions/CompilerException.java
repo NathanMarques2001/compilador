@@ -1,4 +1,4 @@
-package com.compiladores.compilador.Exceptions;
+package com.compiladores.compilador.exceptions;
 
 public class CompilerException extends Exception {
 

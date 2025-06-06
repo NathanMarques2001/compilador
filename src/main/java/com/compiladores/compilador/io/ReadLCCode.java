@@ -1,7 +1,7 @@
-package com.compiladores.compilador.Utils;
+package com.compiladores.compilador.io;
 
-import com.compiladores.compilador.Exceptions.CompilerException;
-import com.compiladores.compilador.Lexical.LexicalAnalyzer;
+import com.compiladores.compilador.exceptions.CompilerException;
+import com.compiladores.compilador.lexer.LexicalAnalyzer;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
