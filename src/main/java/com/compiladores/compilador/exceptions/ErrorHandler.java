@@ -57,10 +57,6 @@ public class ErrorHandler {
         throw new CompilerException(buildSemanticNotDeclaredMessage(token));
     }
 
-    public static void semanticErrorBadComparation(Token token, String expectedType) throws CompilerException {
-        throw new CompilerException(buildSemanticBadComparationMessage(token, expectedType));
-    }
-
     public static void semanticErrorInvalidExpression(String expectedType, String actualType, Token token) throws CompilerException {
         throw new CompilerException(buildSemanticInvalidExpressionMessage(expectedType, actualType, token));
     }
@@ -80,16 +76,6 @@ public class ErrorHandler {
                 "' na linha " + token.getLine() + ", coluna " + token.getColumn());
     }
 
-    public static void semanticErrorInvalidType(Token token) throws CompilerException {
-        throw new CompilerException("Erro Semântico: tipo inválido ou inexistente '" + token.getName() +
-                "' na linha " + token.getLine() + ", coluna " + token.getColumn());
-    }
-
-    public static void semanticErrorAssignmentToFinal(Token token) throws CompilerException {
-        throw new CompilerException("Erro Semântico: não é permitido atribuir novo valor à variável final '" +
-                token.getName() + "' na linha " + token.getLine() + ", coluna " + token.getColumn());
-    }
-
     // ========== MENSAGENS AUXILIARES ==========
 
     private static String buildSemanticAssignmentMessage(Token wrongToken, Token declaredToken) {
@@ -102,12 +88,6 @@ public class ErrorHandler {
     private static String buildSemanticNotDeclaredMessage(Token token) {
         return "Erro Semântico: variável '" + token.getName() + "' não foi declarada! " +
                 "Na linha " + token.getLine() + ", coluna " + token.getColumn();
-    }
-
-    private static String buildSemanticBadComparationMessage(Token token, String expectedType) {
-        return "Erro Semântico: não é possível comparar um tipo '" + token.getType() +
-                "' com um tipo '" + expectedType + "'! Na linha " + token.getLine() +
-                ", coluna " + token.getColumn();
     }
 
     private static String buildSemanticInvalidExpressionMessage(String expectedType, String invalidType, Token token) {
