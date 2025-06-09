@@ -1,0 +1,5 @@
+/* erro_lexico_int_fora_limite.lc */
+int i;
+begin
+    i = 40000; /* Valor excede o limite de 32767 */
+end

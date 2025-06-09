@@ -1,0 +1,8 @@
+/* erro_semantico_condicao_while_invalida.lc */
+int a;
+begin
+    a = 10;
+    while (a + 5) begin /* Erro: a expressao resulta em um inteiro, nao booleano */
+        writeln,"loop";
+    end
+end

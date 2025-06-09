@@ -2,6 +2,10 @@ package com.compiladores.compilador.exceptions;
 
 import com.compiladores.compilador.lexer.Token;
 
+/**
+ * Classe utilitária para centralizar a criação e o lançamento de erros de compilação.
+ * Garante que todas as mensagens de erro sigam um formato padrão e rigoroso.
+ */
 public class ErrorHandler {
 
     // ========== ERROS LÉXICOS ==========
@@ -76,7 +80,12 @@ public class ErrorHandler {
                 "' na linha " + token.getLine() + ", coluna " + token.getColumn());
     }
 
-    // ========== MENSAGENS AUXILIARES ==========
+    public static void semanticErrorAssignmentToConstant(Token token) throws CompilerException {
+        throw new CompilerException("Erro Semântico: tentativa de atribuir um novo valor à constante '" + token.getName() +
+                "' na linha " + token.getLine() + ", coluna " + token.getColumn());
+    }
+
+    // ========== MÉTODOS AUXILIARES PARA CONSTRUIR MENSAGENS ==========
 
     private static String buildSemanticAssignmentMessage(Token wrongToken, Token declaredToken) {
         return "Erro Semântico: atribuição incorreta! Foi atribuído um tipo '" + wrongToken.getType() +

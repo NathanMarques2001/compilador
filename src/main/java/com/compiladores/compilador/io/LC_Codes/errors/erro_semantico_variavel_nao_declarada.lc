@@ -1,0 +1,4 @@
+/* erro_semantico_variavel_nao_declarada.lc */
+begin
+    x = 10; /* A variavel 'x' nao foi declarada */
+end

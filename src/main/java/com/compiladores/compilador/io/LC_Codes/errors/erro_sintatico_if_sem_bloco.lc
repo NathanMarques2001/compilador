@@ -1,0 +1,6 @@
+/* erro_sintatico_if_sem_bloco.lc */
+int a;
+begin
+    a = 10;
+    if a > 5 writeln,"maior que 5"; /* Deve falhar se o parser exige um bloco */
+end

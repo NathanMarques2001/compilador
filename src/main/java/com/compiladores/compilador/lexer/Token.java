@@ -1,5 +1,10 @@
 package com.compiladores.compilador.lexer;
 
+/**
+ * Representa um token, a unidade fundamental de código fonte para o compilador.
+ * Cada token possui um nome (o lexema), uma classificação, um tipo de dado,
+ * e sua localização (linha e coluna) no arquivo fonte original.
+ */
 public class Token {
 
     private final String name;

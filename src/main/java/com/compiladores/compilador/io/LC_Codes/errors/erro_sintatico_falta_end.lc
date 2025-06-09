@@ -1,0 +1,6 @@
+/* erro_sintatico_falta_end.lc */
+int a;
+begin
+    a = 10;
+    writeln,"Teste";
+/* Falta o 'end' aqui no final do arquivo */

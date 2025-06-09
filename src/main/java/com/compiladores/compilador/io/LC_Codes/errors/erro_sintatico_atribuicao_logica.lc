@@ -1,0 +1,7 @@
+/* erro_sintatico_atribuicao_logica.lc */
+boolean flag;
+int n;
+begin
+    n = 10;
+    flag = (n > 5); /* Parser deve rejeitar essa atribuicao */
+end

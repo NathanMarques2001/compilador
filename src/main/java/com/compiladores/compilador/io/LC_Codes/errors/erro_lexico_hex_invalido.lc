@@ -1,0 +1,5 @@
+/* erro_lexico_hex_invalido.lc */
+byte b;
+begin
+    b = 0hGF; /* Deve falhar por causa do 'G' */
+end

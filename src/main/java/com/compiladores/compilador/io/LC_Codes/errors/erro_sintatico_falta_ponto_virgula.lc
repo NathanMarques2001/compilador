@@ -1,0 +1,5 @@
+/* erro_sintatico_falta_ponto_virgula.lc */
+int a
+begin
+    a = 10;
+end

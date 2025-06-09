@@ -1,0 +1,6 @@
+/* erro_lexico_quebra_linha_string.lc */
+string s;
+begin
+    s = "isto e uma string
+com quebra de linha"; /* Deve falhar aqui */
+end

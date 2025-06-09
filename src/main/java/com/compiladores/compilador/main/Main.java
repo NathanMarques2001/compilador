@@ -12,12 +12,44 @@ import com.compiladores.compilador.optimizer.PeepholeOptimizer;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Classe principal que executa o processo de compilação.
+ * Ela inicializa todos os componentes do compilador e executa cada fase
+ * em sequência: Léxica, Sintática, Semântica, Geração de Código e Otimização.
+ */
 public class Main {
 
     public static void main(String[] args) {
         try {
-            // Caminho completo do arquivo de entrada .lc
-            String filePath = "src/main/java/com/compiladores/compilador/io/LC_Codes/calculadora.lc";
+            // Códigos com erros utilizados para testes
+            String[] codigosLCComErros = {
+                    "errors/erro_lexico_hex_invalido.lc"
+                    , "errors/erro_lexico_identificador_fora_limite.lc"
+                    , "errors/erro_lexico_int_fora_limite.lc"
+                    , "errors/erro_lexico_quebra_linha_string.lc"
+                    , "errors/erro_lexico_simbolo_invalido.lc"
+                    , "errors/erro_lexico_string_fora_limite.lc"
+                    , "errors/erro_semantico_atribuicao_constante.lc"
+                    , "errors/erro_semantico_condicao_while_invalida.lc"
+                    , "errors/erro_semantico_tipos_incompativeis.lc"
+                    , "errors/erro_semantico_variavel_nao_declarada.lc"
+                    , "errors/erro_sintatico_atribuicao_logica.lc"
+                    , "errors/erro_sintatico_falta_end.lc"
+                    , "errors/erro_sintatico_falta_ponto_virgula.lc"
+                    , "errors/erro_sintatico_if_sem_bloco.lc"
+            };
+
+            // Códigos corretos utilizados para testes
+            String[] codigosLCSemErros = {
+                    "successes/calculadora.lc"
+                    , "successes/main-corrigido.lc"
+                    , "successes/toda-gramatica.lc"
+            };
+
+            // Define o caminho completo do arquivo de entrada .lc
+            // 7 - erro_semantico_condicao_while_invalida
+
+            String filePath = "src/main/java/com/compiladores/compilador/io/LC_Codes/" + codigosLCComErros[7];
 
             File inputFile = new File(filePath);
             if (!inputFile.exists()) {
@@ -25,67 +57,71 @@ public class Main {
                 return;
             }
 
-            // Diretório raiz do projeto
-            String projectRoot = new File("src/main/java").getAbsolutePath();
-
-            // Nome base do arquivo (sem extensão)
+            // Extrai o nome do arquivo sem a extensão para usá-lo no arquivo de saída.
             String fileName = inputFile.getName().replaceFirst("[.][^.]+$", "");
 
-            // Diretório de saída para o .asm
-            String outputDir = projectRoot + File.separator + "com" + File.separator +
-                    "compiladores" + File.separator +
-                    "compilador" + File.separator +
-                    "codegen" + File.separator +
-                    "out";
-
-            // Caminho completo do arquivo ASM de saída
+            // Constrói o caminho completo para o arquivo de saída .asm.
+            String outputDir = "src/main/java/com/compiladores/compilador/codegen/out";
             String asmFilePath = outputDir + File.separator + fileName + ".asm";
 
             System.out.println("Lendo o arquivo: " + inputFile.getAbsolutePath());
 
-            // Executa o pipeline de compilação
+            // --- Início do Pipeline de Compilação ---
+
+            // Instancia os componentes principais do compilador.
             SymbolsTable table = new SymbolsTable();
             LexicalAnalyzer lexer = new LexicalAnalyzer(table);
             ReadLCCode reader = new ReadLCCode();
 
+            // Executa cada fase sequencialmente.
             runLexicalAnalysis(inputFile.getPath(), reader, lexer, table);
             runSyntacticAnalysis(table);
             runSemanticAnalysis(table);
             runAssemblyGeneration(table, fileName);
             runPeepholeOptimizer(asmFilePath);
 
-        } catch (Exception e) {
-            System.err.println("Erro: " + e.getMessage());
+            System.out.println("\nCompilação finalizada com sucesso!");
+
+        } catch (CompilerException | IOException e) {
+            System.out.println();
+            System.err.println(e.getMessage());
         }
     }
 
+    // Encapsula a execução da análise léxica.
     private static void runLexicalAnalysis(String path, ReadLCCode reader, LexicalAnalyzer lexer, SymbolsTable table) throws CompilerException {
-        System.out.println("\n=== Análise Léxica ===");
+        System.out.println("\n=== Iniciando Análise Léxica ===");
         reader.readFileAndAnalyze(path, lexer);
-        System.out.println("Concluída.");
+        // table.printSymbols(); // Descomente para depurar a tabela de símbolos após a análise léxica.
+        System.out.println("Análise Léxica concluída.");
     }
 
+    // Encapsula a execução da análise sintática.
     private static void runSyntacticAnalysis(SymbolsTable table) throws CompilerException {
-        System.out.println("\n=== Análise Sintática ===");
+        System.out.println("\n=== Iniciando Análise Sintática ===");
         new SyntaticAnalyzer(table).parseProgram();
-        System.out.println("Concluída.");
+        System.out.println("Análise Sintática concluída.");
     }
 
+    // Encapsula a execução da análise semântica.
     private static void runSemanticAnalysis(SymbolsTable table) throws CompilerException {
-        System.out.println("\n=== Análise Semântica ===");
+        System.out.println("\n=== Iniciando Análise Semântica ===");
         new SemanticAnalyzer(table).analyze();
-        System.out.println("Concluída.");
+        // table.printSymbols(); // Descomente para depurar a tabela de símbolos após a análise semântica.
+        System.out.println("Análise Semântica concluída.");
     }
 
+    // Encapsula a execução da geração de código Assembly.
     private static void runAssemblyGeneration(SymbolsTable table, String fileName) throws CompilerException {
-        System.out.println("\n=== Geração de Código Assembly ===");
+        System.out.println("\n=== Iniciando Geração de Código Assembly ===");
         new AssemblyGenerator(table, fileName).convert();
-        System.out.println("Concluída.");
+        System.out.println("Geração de Código concluída.");
     }
 
+    // Encapsula a execução do otimizador Peephole.
     private static void runPeepholeOptimizer(String asmFilePath) throws IOException {
-        System.out.println("\n=== Otimização Peephole ===");
+        System.out.println("\n=== Iniciando Otimização Peephole ===");
         PeepholeOptimizer.optimizeFile(asmFilePath);
-        System.out.println("Concluída.");
+        System.out.println("Otimização concluída.");
     }
 }

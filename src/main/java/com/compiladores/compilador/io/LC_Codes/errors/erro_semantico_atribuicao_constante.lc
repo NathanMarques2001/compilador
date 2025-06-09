@@ -1,0 +1,5 @@
+/* erro_semantico_atribuicao_constante.lc */
+final MAX = 100;
+begin
+    MAX = 99; /* Erro: tentativa de modificar uma constante */
+end

@@ -1,0 +1,5 @@
+/* erro_lexico_simbolo_invalido.lc */
+int a;
+begin
+    a = 10 @ 5; /* O analisador lexico deve falhar aqui */
+end

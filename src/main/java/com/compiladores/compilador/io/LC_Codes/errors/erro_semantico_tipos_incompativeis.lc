@@ -1,0 +1,5 @@
+/* erro_semantico_tipos_incompativeis.lc */
+int a;
+begin
+    a = "teste"; /* Erro: nao pode atribuir string a uma variavel int */
+end
