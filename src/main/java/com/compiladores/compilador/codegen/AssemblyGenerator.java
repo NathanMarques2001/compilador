@@ -34,9 +34,10 @@ public class AssemblyGenerator {
     private int loopCounter = 1;
     private int ifCounter = 1;
 
-    // Flag para controlar a declaração de formatos de `scanf`.
+    // Flag para controlar a declaração de formatos de `scanf` e evitar duplicação.
     private boolean formatDSDeclared = false;
 
+    // Construtor que inicializa o gerador com a tabela de símbolos e o nome do arquivo de saída.
     public AssemblyGenerator(SymbolsTable symbolsTable, String fileName) {
         this.symbolsTable = symbolsTable;
         this.fileName = fileName + ".asm";
@@ -57,6 +58,12 @@ public class AssemblyGenerator {
         }
     }
 
+    // Método auxiliar para verificar se uma string é um operador relacional.
+    private boolean isRelationalOperator(String op) {
+        if (op == null) return false;
+        return op.equals("==") || op.equals("<>") || op.equals("<") || op.equals(">") || op.equals("<=") || op.equals(">=");
+    }
+
     // Cria o diretório de saída para os arquivos .asm, se ele não existir.
     private void createOutDirectory() {
         File outDir = new File(this.path);
@@ -65,7 +72,7 @@ public class AssemblyGenerator {
         }
     }
 
-    // Escreve o código Assembly gerado em um arquivo .asm.
+    // Escreve o conteúdo final do código Assembly em um arquivo .asm.
     private void writeAssemblyCode(String assemblyCode) {
         File asmFile = new File(this.path, this.fileName);
         try (FileWriter writer = new FileWriter(asmFile)) {
@@ -101,9 +108,7 @@ public class AssemblyGenerator {
 
     /**
      * Gera o cabeçalho padrão para um executável MASM de 32 bits para Windows,
-     * utilizando o modelo de memória flat (com pilha expansível até 4GB), sem
-     * diferenciação entre maiúsculas e minúsculas (case-insensitive), e incluindo
-     * as bibliotecas necessárias para operações de entrada e saída (printf, scanf etc.).
+     * incluindo as bibliotecas necessárias para operações de I/O.
      */
     private void generateHeader() {
         this.headerSection.append(".686\n")
@@ -145,40 +150,42 @@ public class AssemblyGenerator {
 
     // Itera sobre as declarações de variáveis e constantes e as traduz para diretivas MASM.
     private void identifyDeclaration() {
+        // Trata declarações de constantes (final).
         if (this.currentToken.getName().equalsIgnoreCase("final")) {
-            // Tratamento de constantes (final -> equ).
             nextToken(); // Consome 'final'.
             String constName = this.currentToken.getName();
-            nextToken(); // Consome o nome.
+            nextToken(); // Consome o nome da constante.
             nextToken(); // Consome '='.
             String constValue = this.currentToken.getName();
 
-            if (constValue.startsWith("\"")) { // Constante string.
+            // Constantes string são declaradas como 'db' e seu endereço é atribuído com 'equ'.
+            if (constValue.startsWith("\"")) {
                 String actualString = constValue.substring(1, constValue.length() - 1);
                 String strLabel = "const_str_" + constName;
                 this.dataSection.append(String.format("    %-15s db \"%s\", 0\n", strLabel, actualString));
                 this.dataSection.append(String.format("    %-15s equ addr %s\n", constName, strLabel));
-            } else { // Constante numérica ou booleana.
+            } else { // Constantes numéricas são diretamente traduzidas com 'equ'.
                 this.dataSection.append(String.format("    %-15s equ %s\n", constName, formatValue(constValue, "int")));
             }
             nextToken(); // Consome o valor.
             nextToken(); // Consome ';'.
         } else {
-            // Tratamento de variáveis.
             String type = this.currentToken.getName();
             String dataTypeMASM = primitiveTypeMASM(type);
             nextToken(); // Consome o tipo.
 
-            // Loop para tratar múltiplas declarações na mesma linha (ex: int a, b, c;).
+            // Loop para tratar múltiplas declarações na mesma linha (ex: int a, b;).
             while (this.currentToken != null && !this.currentToken.getName().equals(";")) {
                 String dataName = this.currentToken.getName();
                 nextToken(); // Consome o nome da variável.
                 String dataValue = "0"; // Valor padrão para variáveis não inicializadas.
 
+                // Strings são alocadas com um buffer de 256 bytes.
                 if (type.equalsIgnoreCase("string")) {
                     this.dataSection.append(String.format("    %-15s db 256 dup(0)\n", dataName));
                 } else {
-                    if (this.currentToken.getName().equals("=")) { // Se houver inicialização.
+                    // Verifica se há uma inicialização de valor.
+                    if (this.currentToken.getName().equals("=")) {
                         nextToken(); // Consome '='.
                         dataValue = formatValue(this.currentToken.getName(), type);
                         nextToken(); // Consome o valor.
@@ -200,13 +207,13 @@ public class AssemblyGenerator {
     private void generateCodeSection() {
         this.codeSection.append(".code\n").append("start:\n");
         this.beginGeneration();
-        // Finaliza o programa.
+        // Finaliza o programa chamando a função ExitProcess.
         this.codeSection.append("\n    invoke ExitProcess, 0\n").append("end start\n");
     }
 
-    // Inicia a geração de código a partir do bloco 'begin'.
+    // Inicia a geração de código a partir do bloco principal 'begin'.
     private void beginGeneration() {
-        // Pula os tokens de declaração até encontrar 'begin'.
+        // Avança todos os tokens da fase de declaração até encontrar 'begin'.
         while (this.currentToken != null && !this.currentToken.getName().equalsIgnoreCase("begin")) {
             nextToken();
         }
@@ -214,7 +221,7 @@ public class AssemblyGenerator {
             nextToken(); // Consome 'begin'.
         }
 
-        // Processa todos os comandos até encontrar 'end'.
+        // Processa todos os comandos dentro do bloco principal.
         while (this.currentToken != null && !this.currentToken.getName().equalsIgnoreCase("end")) {
             identifyCommands();
         }
@@ -225,7 +232,7 @@ public class AssemblyGenerator {
 
     /**
      * Identifica o comando atual e delega para o método de geração apropriado.
-     * Funciona como um dispatcher para os comandos da linguagem.
+     * Atua como um dispatcher para os diferentes comandos da linguagem.
      */
     private void identifyCommands() {
         if (this.currentToken == null) return;
@@ -235,9 +242,9 @@ public class AssemblyGenerator {
             case "readln" -> identifyRead();
             case "while" -> identifyWhile();
             case "if" -> identifyIf();
-            case ";" -> nextToken(); // Comando nulo.
+            case ";" -> nextToken(); // Ignora comandos nulos (ponto e vírgula extra).
             default -> {
-                // Se não for uma palavra-chave, pode ser uma atribuição (que começa com ID).
+                // Se não for uma palavra-chave, assume que é uma atribuição (que começa com um ID).
                 if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
                     identifyAssignment();
                 } else {
@@ -256,7 +263,7 @@ public class AssemblyGenerator {
         nextToken(); // Consome 'write' ou 'writeln'.
         nextToken(); // Consome ','.
 
-        StringBuilder formatStr = new StringBuilder(); // String de formato para printf.
+        StringBuilder formatStr = new StringBuilder(); // String de formato para printf (ex: "%d %s").
         ArrayList<String> args = new ArrayList<>();   // Argumentos para printf.
 
         // Constrói a string de formato e a lista de argumentos.
@@ -264,27 +271,27 @@ public class AssemblyGenerator {
             if (this.currentToken.getClassification().equalsIgnoreCase("ID")) {
                 String varName = this.currentToken.getName();
                 String varType = this.symbolsTable.getSymbolType(varName);
-                if (varType == null) varType = "int"; // Fallback
+                if (varType == null) varType = "int"; // Fallback para tipo desconhecido.
 
                 if (varType.equalsIgnoreCase("string")) {
                     formatStr.append("%s");
-                    args.add("addr " + varName);
-                } else {
+                    args.add("addr " + varName); // Para strings, passamos o endereço.
+                } else { // Trata literais de string no meio do write.
                     formatStr.append("%d");
-                    args.add(varName);
+                    args.add(varName); // Para outros tipos, passamos o valor.
                 }
-            } else { // Literal string no meio do write.
-                String literal = this.currentToken.getName().replace("\"", "");
+            } else {
+                String literal = this.currentToken.getName().replace("\"", "").replace("'", "");
                 formatStr.append(literal);
             }
             nextToken();
             if (this.currentToken != null && this.currentToken.getName().equals(",")) {
-                nextToken(); // Consome ','.
+                nextToken(); // Consome a vírgula entre os argumentos.
             }
         }
 
         if (this.currentToken != null && this.currentToken.getName().equals(";")) {
-            nextToken(); // Consome ';'.
+            nextToken(); // Consome o ';' final.
         }
 
         // Declara a string de formato na seção .data.
@@ -307,15 +314,15 @@ public class AssemblyGenerator {
         String variableName = this.currentToken.getName();
         String varType = this.symbolsTable.getSymbolType(variableName);
 
-        if (varType.equalsIgnoreCase("int") || varType.equalsIgnoreCase("byte") || varType.equalsIgnoreCase("boolean")) {
-            // Usa scanf para tipos numéricos/booleanos.
-            if (!this.formatDSDeclared) { // Declara a string de formato "%d" se ainda não foi declarada.
+        // Usa crt_scanf para tipos numéricos e booleanos.
+        if (varType != null && (varType.equalsIgnoreCase("int") || varType.equalsIgnoreCase("byte") || varType.equalsIgnoreCase("boolean"))) {
+            // Declara a string de formato "%d" uma única vez.
+            if (!this.formatDSDeclared) {
                 this.dataSection.append(String.format("    %-15s db \"%%d\", 0\n", "format_d"));
                 this.formatDSDeclared = true;
             }
             this.codeSection.append("    invoke crt_scanf, addr format_d, addr ").append(variableName).append("\n");
-        } else { // string
-            // Usa gets para ler strings.
+        } else { // Usa crt_gets para ler strings.
             this.codeSection.append("    invoke crt_gets, addr ").append(variableName).append("\n");
         }
 
@@ -334,10 +341,12 @@ public class AssemblyGenerator {
         this.codeSection.append("\n").append(loopLabel).append(":\n"); // Label de início do loop.
         nextToken(); // Consome 'while'.
 
-        // Gera o código para a condição do loop. O salto ocorrerá se a condição for falsa.
+        // Gera o código para a condição. O salto para o fim do loop ocorrerá se a condição for falsa.
         generateConditionalExpression(loopEndLabel, true);
 
-        nextToken(); // Consome 'begin'.
+        if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("begin")) {
+            nextToken(); // Consome 'begin'.
+        }
 
         // Gera o código para o corpo do loop.
         while (this.currentToken != null && !this.currentToken.getName().equalsIgnoreCase("end")) {
@@ -357,78 +366,95 @@ public class AssemblyGenerator {
         int localIfCounter = this.ifCounter++;
         String elseLabel = "_else" + localIfCounter;
         String endIfLabel = "_fimIf" + localIfCounter;
-        nextToken(); // Consome 'if'.
 
+        nextToken(); // Consome 'if'.
         // Gera a condição. Se for falsa, salta para o bloco 'else' (ou para o fim do 'if').
         generateConditionalExpression(elseLabel, true);
-        nextToken(); // Consome 'begin'.
 
-        // Gera o código do bloco 'if'.
-        while (this.currentToken != null && !this.currentToken.getName().equalsIgnoreCase("end") &&
-                !this.currentToken.getName().equalsIgnoreCase("else")) {
+        if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("begin")) {
+            nextToken();
+        }
+
+        // Processa o corpo do IF
+        while (this.currentToken != null && !this.currentToken.getName().equalsIgnoreCase("end") && !this.currentToken.getName().equalsIgnoreCase("else")) {
             identifyCommands();
         }
 
-        boolean hasElse = this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("else");
-
-        if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("end")) {
-            nextToken(); // Consome 'end' do bloco if.
-        }
-
-        if (hasElse) {
-            this.codeSection.append("    jmp ").append(endIfLabel).append("\n"); // Se o 'if' executou, pula o 'else'.
-            this.codeSection.append(elseLabel).append(":\n"); // Label do bloco 'else'.
+        // Verifica se temos um bloco else
+        if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("else")) {
+            // Se o bloco IF foi executado, salta sobre o bloco ELSE.
+            this.codeSection.append("    jmp ").append(endIfLabel).append("\n");
+            this.codeSection.append(elseLabel).append(":\n");
             nextToken(); // Consome 'else'.
-            nextToken(); // Consome 'begin' do else.
-
-            // Gera o código do bloco 'else'.
+            if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("begin")) {
+                nextToken(); // Consome 'begin' do else.
+            }
+            // Processa o corpo do ELSE.
             while (this.currentToken != null && !this.currentToken.getName().equalsIgnoreCase("end")) {
                 identifyCommands();
             }
             if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("end")) {
-                nextToken(); // Consome 'end' do else.
+                nextToken(); // Consome o 'end' do ELSE
             }
-            this.codeSection.append(endIfLabel).append(":\n"); // Label do fim do if-else.
+            this.codeSection.append(endIfLabel).append(":\n");
         } else {
-            // Se não houver 'else', o 'elseLabel' se torna o ponto de saída do 'if'.
+            // Sem bloco else, o elseLabel é o fim do IF
             this.codeSection.append(elseLabel).append(":\n");
+        }
+
+        // Consome o 'end' que fecha a estrutura IF (ou IF-ELSE aninhado).
+        if (this.currentToken != null && this.currentToken.getName().equalsIgnoreCase("end")) {
+            nextToken();
         }
     }
 
-    // Gera código para uma expressão condicional (ex: x < 5), resultando em um salto.
+    // Gera código para uma expressão condicional, resultando em um salto.
     private void generateConditionalExpression(String targetLabel, boolean jumpIfConditionFalse) {
         String firstOperand = this.currentToken.getName();
-        nextToken(); // Avança para o operador.
-        String operator = this.currentToken.getName();
-        nextToken(); // Avança para o segundo operando.
-        String secondOperand = this.currentToken.getName();
-
-        // Usa eax para inteiros, al para bytes/booleanos.
-        String reg = "eax";
         String type = symbolsTable.getSymbolType(firstOperand);
-        if (type != null && (type.equalsIgnoreCase("boolean") || type.equalsIgnoreCase("byte"))) {
-            reg = "al";
+        nextToken(); // Consome o primeiro operando.
+
+        // Verifica se é uma comparação explícita (ex: n >= 10).
+        if (isRelationalOperator(this.currentToken.getName())) {
+            String operator = this.currentToken.getName();
+            nextToken();
+            String secondOperand = this.currentToken.getName();
+            nextToken();
+
+            // Usa 'eax' (32 bits) para inteiros, 'al' (8 bits) para bytes/booleanos.
+            String reg = "eax";
+            if (type != null && (type.equalsIgnoreCase("boolean") || type.equalsIgnoreCase("byte"))) {
+                reg = "al";
+            }
+
+            // Carrega os operandos, compara e salta.
+            this.codeSection.append("    mov ").append(reg).append(", ").append(formatValue(firstOperand, type)).append("\n");
+            this.codeSection.append("    cmp ").append(reg).append(", ").append(formatValue(secondOperand, type)).append("\n");
+
+            String jumpInstruction = getJumpInstruction(operator, jumpIfConditionFalse);
+            this.codeSection.append("    ").append(jumpInstruction).append(" ").append(targetLabel).append("\n");
+
+        } else { // Trata comparações booleanas implícitas (ex: while naoTerminou).
+            String reg = "al"; // Booleans são sempre bytes.
+
+            this.codeSection.append("    mov ").append(reg).append(", ").append(firstOperand).append("\n");
+            this.codeSection.append("    cmp ").append(reg).append(", 1\n"); // Compara com 'true' (1).
+
+            String jumpInstruction = jumpIfConditionFalse ? "jne" : "je"; // jne: salta se não for verdadeiro.
+            this.codeSection.append("    ").append(jumpInstruction).append(" ").append(targetLabel).append("\n");
         }
-
-        // Carrega o primeiro operando no registrador, compara com o segundo.
-        this.codeSection.append("    mov ").append(reg).append(", ").append(formatValue(firstOperand, type)).append("\n");
-        this.codeSection.append("    cmp ").append(reg).append(", ").append(formatValue(secondOperand, type)).append("\n");
-
-        // Determina a instrução de salto correta com base no operador.
-        String jumpInstruction = getJumpInstruction(operator, jumpIfConditionFalse);
-        this.codeSection.append("    ").append(jumpInstruction).append(" ").append(targetLabel).append("\n");
     }
 
     // Mapeia um operador relacional para a instrução de salto condicional correspondente em Assembly.
     private String getJumpInstruction(String operator, boolean jumpIfConditionFalse) {
         return switch (operator) {
-            case "==" -> jumpIfConditionFalse ? "jne" : "je"; // Jump if Not Equal / Jump if Equal
-            case "<>" -> jumpIfConditionFalse ? "je" : "jne"; // Jump if Equal / Jump if Not Equal
-            case "<" -> jumpIfConditionFalse ? "jge" : "jl";  // Jump if Greater or Equal / Jump if Less
-            case ">" -> jumpIfConditionFalse ? "jle" : "jg";  // Jump if Less or Equal / Jump if Greater
-            case "<=" -> jumpIfConditionFalse ? "jg" : "jle";  // Jump if Greater / Jump if Less or Equal
-            case ">=" -> jumpIfConditionFalse ? "jl" : "jge";  // Jump if Less / Jump if Greater or Equal
-            default -> "";
+            case "==" -> jumpIfConditionFalse ? "jne" : "je";
+            case "<>" -> jumpIfConditionFalse ? "je" : "jne";
+            case "<" -> jumpIfConditionFalse ? "jge" : "jl";
+            case ">" -> jumpIfConditionFalse ? "jle" : "jg";
+            case "<=" -> jumpIfConditionFalse ? "jg" : "jle";
+            case ">=" -> jumpIfConditionFalse ? "jl" : "jge";
+            default -> ""; // Caso inválido
         };
     }
 
@@ -436,21 +462,31 @@ public class AssemblyGenerator {
     private void identifyAssignment() {
         String variableName = this.currentToken.getName();
         String varType = this.symbolsTable.getSymbolType(variableName);
-        if (varType == null) varType = "int"; // Fallback
+        if (varType == null) varType = "int"; // Fallback.
 
         nextToken(); // Consome o nome da variável.
         nextToken(); // Consome '='.
 
+        // Atribuição de string usa a função crt_strcpy.
         if (varType.equalsIgnoreCase("string")) {
-            // Atribuição de string usa a função crt_strcpy.
             String stringLiteral = this.currentToken.getName();
-            String actualStringValue = stringLiteral.substring(1, stringLiteral.length() - 1);
+            String actualStringValue;
+
+            // Validação para remover aspas de forma segura.
+            if (stringLiteral.length() >= 2 && stringLiteral.startsWith("\"") && stringLiteral.endsWith("\"")) {
+                actualStringValue = stringLiteral.substring(1, stringLiteral.length() - 1);
+            } else {
+                // Emite um aviso se o valor não for uma string entre aspas.
+                System.err.println("[Aviso de Geração de Código] Atribuição para string '" + variableName + "' com valor malformado: " + stringLiteral);
+                actualStringValue = ""; // Usa uma string vazia para evitar crash.
+            }
+
+            // Declara a string na seção .data e invoca a cópia.
             String stringLabelInData = "str_assign_" + this.stringCount++;
             this.dataSection.append(String.format("    %-15s db \"%s\", 0\n", stringLabelInData, actualStringValue));
             this.codeSection.append("    invoke crt_strcpy, addr ").append(variableName).append(", addr ").append(stringLabelInData).append("\n");
             nextToken();
-        } else {
-            // Para tipos numéricos, coleta a expressão e a avalia.
+        } else { // Para tipos numéricos/booleanos, avalia a expressão.
             ArrayList<Token> expressionTokens = new ArrayList<>();
             while (this.currentToken != null && !this.currentToken.getName().equals(";")) {
                 expressionTokens.add(this.currentToken);
@@ -458,44 +494,44 @@ public class AssemblyGenerator {
             }
             evaluateExpression(expressionTokens);
 
-            // O resultado da expressão estará no topo da pilha.
+            // O resultado da expressão está no topo da pilha do processador.
             this.codeSection.append("    pop eax\n");
+            // Move o resultado para a variável correta (8 bits para boolean/byte, 32 bits para int).
             if (varType.equalsIgnoreCase("boolean") || varType.equalsIgnoreCase("byte")) {
-                this.codeSection.append("    mov ").append(variableName).append(", al\n"); // Usa o registrador de 8 bits.
+                this.codeSection.append("    mov ").append(variableName).append(", al\n");
             } else {
-                this.codeSection.append("    mov ").append(variableName).append(", eax\n"); // Usa o registrador de 32 bits.
+                this.codeSection.append("    mov ").append(variableName).append(", eax\n");
             }
         }
 
         if (this.currentToken != null && this.currentToken.getName().equals(";")) {
-            nextToken(); // Consome ';'.
+            nextToken(); // Consome ';' final.
         }
     }
 
     /**
      * Avalia uma expressão aritmética infixa usando o algoritmo Shunting-yard
-     * para gerar código Assembly em ordem postfix.
+     * para gerar código Assembly em ordem pós-fixa (usando a pilha do processador).
      */
     private void evaluateExpression(ArrayList<Token> tokens) {
-        Stack<String> ops = new Stack<>(); // Pilha de operadores.
+        Stack<String> ops = new Stack<>(); // Pilha para operadores.
 
         for (Token token : tokens) {
             String name = token.getName();
 
-            // Se for um número ou variável, empurra o valor para a pilha do processador.
-            if (token.getClassification().matches("ID|CONST") || name.equalsIgnoreCase("true") || name.equalsIgnoreCase("false")) {
+            // Se o token for um operando (ID ou constante), empurra seu valor na pilha do processador.
+            if (token.getClassification().equalsIgnoreCase("ID") || token.getClassification().equalsIgnoreCase("CONST") || name.equalsIgnoreCase("true") || name.equalsIgnoreCase("false")) {
                 String valueToPush = formatValue(name, token.getType());
                 this.codeSection.append("    push ").append(valueToPush).append("\n");
-            } else if (name.equals("(")) {
+            } else if (name.equals("(")) { // Empilha parênteses de abertura.
                 ops.push(name);
-            } else if (name.equals(")")) {
-                // Desempilha operadores até encontrar '('.
+            } else if (name.equals(")")) { // Ao encontrar ')', desempilha operadores até encontrar '('.
                 while (!ops.empty() && !ops.peek().equals("(")) {
                     generateOp(ops.pop());
                 }
-                if (!ops.empty()) ops.pop(); // Descarta '('.
-            } else if (isOperator(name)) {
-                // Desempilha operadores com maior ou igual precedência.
+                if (!ops.empty()) ops.pop(); // Descarta o '('.
+            } else if (isOperator(name)) { // Se for um operador aritmético...
+                // Desempilha operadores com maior ou igual precedência antes de empilhar o atual.
                 while (!ops.empty() && hasPrecedence(ops.peek(), name)) {
                     generateOp(ops.pop());
                 }
@@ -508,9 +544,9 @@ public class AssemblyGenerator {
         }
     }
 
-    // Gera a instrução Assembly para um operador aritmético.
+    // Gera a instrução Assembly para um operador aritmético (+, -, *, /).
     private void generateOp(String op) {
-        // Desempilha os dois operandos para os registradores ebx e eax.
+        // Retira os dois operandos do topo da pilha para os registradores.
         this.codeSection.append("    pop ebx\n"); // Segundo operando.
         this.codeSection.append("    pop eax\n"); // Primeiro operando.
         switch (op) {
@@ -518,47 +554,58 @@ public class AssemblyGenerator {
             case "-" -> this.codeSection.append("    sub eax, ebx\n");
             case "*" -> this.codeSection.append("    imul eax, ebx\n");
             case "/" -> {
-                this.codeSection.append("    cdq\n"); // Estende o sinal de eax para edx (necessário para idiv).
-                this.codeSection.append("    idiv ebx\n"); // Divisão, resultado em eax.
+                // Prepara para a divisão de 32 bits.
+                this.codeSection.append("    cdq\n"); // Estende o sinal de eax para edx.
+                this.codeSection.append("    idiv ebx\n"); // Quociente em eax, resto em edx.
             }
         }
         this.codeSection.append("    push eax\n"); // Empurra o resultado de volta para a pilha.
     }
 
+    // Verifica se o token atual está no escopo de declaração.
     private boolean isDeclarationScope() {
         return this.currentToken != null && (isPrimitiveType() || this.currentToken.getName().equalsIgnoreCase("final"));
     }
 
+    // Formata um valor da linguagem fonte para o formato correto em Assembly.
     private String formatValue(String value, String type) {
         if (value == null) return "0";
         if (type != null && type.equalsIgnoreCase("boolean")) {
-            if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("Fh")) return "1";
-            if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("0h")) return "0";
+            // Verificação para Fh (true) e 0h (false).
+            if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("1") || value.equalsIgnoreCase("Fh"))
+                return "1";
+            if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("0") || value.equalsIgnoreCase("0h"))
+                return "0";
         }
-        if (type != null && value.toLowerCase().startsWith("0h") && type.equalsIgnoreCase("byte")) {
+        // Converte o formato 0hXX para XXh para bytes.
+        if (value.toLowerCase().startsWith("0h") && type != null && type.equalsIgnoreCase("byte")) {
             return value.substring(2) + "h";
         }
         return value;
     }
 
+    // Mapeia um tipo primitivo da linguagem para a diretiva de dados correspondente do MASM.
     private String primitiveTypeMASM(String type) {
         return switch (type.toLowerCase()) {
-            case "int" -> "dd"; // Double Word (32 bits)
+            case "int" -> "dd"; // Define Double Word (32 bits)
             case "boolean", "byte" -> "db"; // Define Byte (8 bits)
             default -> "";
         };
     }
 
+    // Verifica se o token atual é um tipo primitivo da linguagem.
     private boolean isPrimitiveType() {
         if (this.currentToken == null) return false;
         String name = this.currentToken.getName().toLowerCase();
         return name.equals("int") || name.equals("string") || name.equals("boolean") || name.equals("byte");
     }
 
+    // Verifica se uma string é um operador aritmético.
     private boolean isOperator(String op) {
         return op.matches("[+\\-*/]");
     }
 
+    // Verifica a precedência entre dois operadores aritméticos.
     private boolean hasPrecedence(String op1, String op2) {
         if (op1.equals("(") || op1.equals(")")) return false;
         if ((op1.equals("*") || op1.equals("/")) && (op2.equals("+") || op2.equals("-"))) return true;

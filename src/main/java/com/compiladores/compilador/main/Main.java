@@ -49,7 +49,7 @@ public class Main {
             // Define o caminho completo do arquivo de entrada .lc
             // 7 - erro_semantico_condicao_while_invalida
 
-            String filePath = "src/main/java/com/compiladores/compilador/io/LC_Codes/" + codigosLCComErros[7];
+            String filePath = "src/main/java/com/compiladores/compilador/io/LC_Codes/" + codigosLCSemErros[1];
 
             File inputFile = new File(filePath);
             if (!inputFile.exists()) {
