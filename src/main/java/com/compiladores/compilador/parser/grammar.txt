@@ -1,63 +1,31 @@
-PROGRAMA           -> DECLS BLOCO_COD                    // parseProgram()
+// Ponto de entrada
+parseProgram -> parseDeclarations parseBlock
 
-DECLS              -> DECLARACAO DECLS | ε               // parseDeclarations()
+// Seção de declarações
+parseDeclarations -> Declaracao parseDeclarations | ε
+Declaracao -> ('int' | 'byte' | 'string' | 'boolean') 'ID' ['=' 'CONSTANTE'] ';' | 'final' 'ID' '=' 'CONSTANTE' ';'
 
-DECLARACAO         -> TP_PRIMITIVO ID SIMB_TERM          // parseDeclaration()
-                   | TP_PRIMITIVO ID = CONST SIMB_TERM
-                   | "final" ID = CONST SIMB_TERM
+// Estrutura de Bloco e Comandos
+parseBlock -> 'begin' parseCommands 'end'
+parseCommands -> parseCommand parseCommands | ε
 
-TP_PRIMITIVO       -> "int" | "string" | "byte" | "boolean"  // isPrimitiveType()
+// Dispatcher de Comandos
+parseCommand -> parseWrite | parseReadln | parseWhile | parseIf | parseElse | parseBlock | parseAssignment
 
-CONST              -> NUM_INT                            // isConstOrId()
-                   | NUM_HEX
-                   | "true"
-                   | "false"
-                   | STRING
+// Definição dos Comandos
+parseWrite -> ('write' | 'writeln') ',' 'CONSTANTE' { ',' 'CONSTANTE' } ';'
+parseReadln -> 'readln' ',' 'ID' ';'
+parseAssignment -> 'ID' '=' parseExpression ';'
+parseIf -> 'if' parseExpression parseBlock
+parseWhile -> 'while' parseExpression parseBlock
+parseElse -> 'else' parseBlock
 
-NUM_INT            -> [0-9]+
-NUM_HEX            -> "0h"[0-9A-Fa-f]+
-STRING             -> "\"" .*? "\""
+// Estrutura de Expressões (sem and/or)
+parseExpression -> parseLogicalExpression
+parseLogicalExpression -> ['not'] parseArithmeticExpression [ Op_Relacional parseArithmeticExpression ]
+parseArithmeticExpression -> parseTerm { ('+' | '-') parseTerm }
+parseTerm -> parseFactor { ('*' | '/') parseFactor }
+parseFactor -> 'ID' | 'CONSTANTE' | '(' parseExpression ')'
 
-BLOCO_COD          -> "begin" COMANDOS "end"             // parseBlock()
-
-COMANDOS           -> COMANDO COMANDOS | ε               // parseCommands()
-
-COMANDO            -> ESCREVE                            // parseCommand() → parseWrite()
-                   | LER                                 // parseReadln()
-                   | ATRIBUICAO                          // parseAssignment()
-                   | LOOP                                // parseWhile()
-                   | CONDICIONAL                         // parseIf()
-                   | COMENTARIO                          // parseComment() *(opcional)*
-
-ESCREVE            -> ("write" | "writeln") STR_CONCAT SIMB_TERM   // parseWrite()
-STR_CONCAT         -> "," (ID | CONST | STRING) STR_CONCAT_TAIL
-STR_CONCAT_TAIL    -> STR_CONCAT | ε
-
-LER                -> "readln" "," ID SIMB_TERM          // parseReadln()
-
-ATRIBUICAO         -> ID "=" EXPRESSAO SIMB_TERM         // parseAssignment()
-
-EXPRESSAO          -> EXPRESSAO_LOGICA                   // parseExpression()
-
-EXPRESSAO_LOGICA   -> EXPRESSAO_ARITM COMPARADOR EXPRESSAO_ARITM  // parseExpression()
-                   | EXPRESSAO_LOGICA LOGICO EXPRESSAO_LOGICA
-                   | "not" EXPRESSAO_LOGICA
-                   | EXPRESSAO_ARITM
-
-COMPARADOR         -> "==" | "<" | "<=" | "<>" | ">" | ">="       // isLogicalOperator()
-
-LOGICO             -> "and" | "or"                                // isLogicalOperator()
-
-EXPRESSAO_ARITM    -> TERMO (( "+" | "-" ) TERMO)*       // parseExpression()
-TERMO              -> FATOR (( "*" | "/" ) FATOR)*       // parseExpression()
-FATOR              -> CONST | ID | "(" EXPRESSAO ")"     // isConstOrId() + parseExpression()
-
-LOOP               -> "while" EXPRESSAO_LOGICA BLOCO_COD // parseWhile()
-
-CONDICIONAL        -> "if" EXPRESSAO_LOGICA BLOCO_COD CONDICIONAL_TAIL  // parseIf()
-CONDICIONAL_TAIL   -> "else" BLOCO_COD | ε                            // parseElse()
-
-COMENTARIO         -> "{" .*? "}"                        // parseComment() *(opcional)*
-
-SIMB_TERM          -> ";"
-ID                 -> (letra)(letra | digito | "_")*
+// Tokens terminais compostos
+Op_Relacional -> '==' | '<>' | '<' | '>' | '<=' | '>='
