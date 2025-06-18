@@ -1,1 +1,0 @@
-1. Posso integrar o analisador semantico ao analisador sintatico?
