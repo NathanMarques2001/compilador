@@ -9,17 +9,29 @@ A linguagem LC é uma linguagem imperativa inspirada em C e Pascal, suportando t
 ## 🚀 Pipeline de Compilação
 
 Fonte (.lc)
+
 ↓
+
 Análise Léxica (Regex + AFD)
+
 ↓
+
 Análise Sintática (Descida Recursiva)
+
 ↓
+
 Análise Semântica (Verificação de Tipos e Atribuições)
+
 ↓
+
 Geração de Código (Assembly via Shunting-Yard)
+
 ↓
+
 Otimização Peephole
+
 ↓
+
 Saída (.asm)
 
 
